@@ -26,7 +26,7 @@
 		"vscode": {
 			"extensions": [
 				"ms-vscode.cpptools",
-				"twxs.cmake"
+				"ms-vscode.cmake-tools"
 			]
 		}
 	}
