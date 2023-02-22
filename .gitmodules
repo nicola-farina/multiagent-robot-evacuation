@@ -1,0 +1,6 @@
+[submodule "src/AppliedRoboticsEnvironment"]
+	path = src/AppliedRoboticsEnvironment
+	url = https://github.com/AlexRookie/AppliedRoboticsEnvironment.git
+[submodule "src/AppliedRoboticsStudentInterface"]
+	path = src/AppliedRoboticsStudentInterface
+	url = git@github.com:nicola-farina/AppliedRoboticsStudentInterface.git
