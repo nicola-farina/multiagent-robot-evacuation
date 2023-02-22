@@ -1,0 +1,33 @@
+{
+	"name": "roboplan",
+
+	"build": {
+		"dockerfile": "build/Dockerfile",
+		"context": "build/"
+	},
+
+	"remoteUser": "user",
+
+	"runArgs": [
+		"--name=roboplan_dev",
+		"--rm",
+		"--network=host",
+		"--cap-add=SYS_PTRACE",
+		"--security-opt=seccomp:unconfined",
+		"--security-opt=apparmor:unconfined",
+		"--volume=/tmp/.X11-unix:/tmp/.X11-unix"
+	],
+	"containerEnv": {
+		"DISPLAY": "${localEnv:DISPLAY}",
+		"LIBGL_ALWAYS_SOFTWARE": "1"
+	},
+	
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode.cpptools",
+				"twxs.cmake"
+			]
+		}
+	}
+}
