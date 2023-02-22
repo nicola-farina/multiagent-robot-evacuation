@@ -2,3 +2,7 @@ build/*
 install/*
 log/*
 site/*
+
+# vscode settings
+.vscode/*
+!vscode/c_cpp_properties.json
