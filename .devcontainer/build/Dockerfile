@@ -14,4 +14,5 @@ COPY --chown=user startup.sh /home/user
 USER user
 RUN echo "source ${HOME}/startup.sh" >> ${HOME}/.bashrc
 
+ENTRYPOINT [ "/ros_entrypoint.sh" ]
 CMD [ "bash" ]
