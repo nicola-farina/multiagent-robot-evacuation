@@ -1,11 +1,6 @@
 {
-	"name": "roboplan",
-
-	"build": {
-		"dockerfile": "build/Dockerfile",
-		"context": "build/"
-	},
-
+	"image": "nicolafarina/roboplan",
+	
 	"remoteUser": "user",
 
 	"runArgs": [
