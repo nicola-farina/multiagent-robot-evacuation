@@ -1,20 +1,17 @@
 {
-	"image": "nicolafarina/roboplan",
-	
-	"remoteUser": "user",
+	"dockerFile": "Dockerfile",
 
 	"runArgs": [
-		"--name=roboplan_dev",
-		"--rm",
+		"-it",
+		"--name=ros2",
+		"--privileged",
 		"--network=host",
-		"--cap-add=SYS_PTRACE",
-		"--security-opt=seccomp:unconfined",
-		"--security-opt=apparmor:unconfined",
-		"--volume=/tmp/.X11-unix:/tmp/.X11-unix"
+		"--cap-add=NET_ADMIN",
+		"--volume=/tmp/.X11-unix:/tmp/.X11-unix:rw",
+		"--volume=/dev/dri:/dev/dri"
 	],
 	"containerEnv": {
-		"DISPLAY": "${localEnv:DISPLAY}",
-		"LIBGL_ALWAYS_SOFTWARE": "1"
+		"DISPLAY": "${localEnv:DISPLAY}"
 	},
 	
 	"customizations": {

@@ -8,11 +8,14 @@ RUN apt-get update \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists
 
-# Add a non-root user and setup a startup file in bashrc
-RUN useradd -ms /bin/bash user && chmod -R a+rwx /root
-COPY --chown=user startup.sh /home/user
-USER user
-RUN echo "source ${HOME}/startup.sh" >> ${HOME}/.bashrc
+# Clone repository
+RUN cd /root/ros2_ws \
+    && rm -r src \
+    && git clone https://github.com/pla10/Shelfino_ROS2.git . \
+    && git checkout devel
+
+# Add startup to bashrc
+RUN echo "source /root/startup.sh" > /root/.bashrc
 
 ENTRYPOINT [ "/ros_entrypoint.sh" ]
 CMD [ "bash" ]
