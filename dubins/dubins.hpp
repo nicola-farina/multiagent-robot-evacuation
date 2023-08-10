@@ -12,7 +12,6 @@
 #define DUBINSCURVES
 
 #include "utils.hpp"
-#include "visgraph.hpp"
 #include <vector>
 #include <iostream>
 #include <opencv2/core/core.hpp>
@@ -226,15 +225,6 @@ namespace dubins
         CurveSegmentsResult *useRLR(double scaled_th0, double scaled_thf, double scaled_k_max);
         CurveSegmentsResult *useLRL(double scaled_th0, double scaled_thf, double scaled_k_max);
 
-        /**
-         * @brief Find the shortest path between two points, given a set of intermediate points our path must pass through
-         *
-         * @param points An array of points we have to pass through
-         * @param numberOfPoints The number of points provided
-         * @return double* Array of optimal angles
-         */
-        double *multipointShortestPathAngles(DubinsPoint **points, unsigned int numberOfPoints, visgraph::Graph &graph);
-
     public:
         /**
          * @brief Construct a new Dubins object
@@ -264,29 +254,6 @@ namespace dubins
         DubinsCurve *findShortestPath(double x0, double y0, double th0, double xf, double yf, double thf);
 
         /**
-         * @brief Find the shortest path between a starting and a final position, check for collisions
-         *
-         * @param x0 Starting x position
-         * @param y0 Starting y position
-         * @param th0 Starting angle
-         * @param xf Final x position
-         * @param yf Final y position
-         * @param thf Final angle
-         * @param edges All obstacles' edges
-         * @return DubinsCurve* Resulting curve representing the shortest path
-         */
-        DubinsCurve *findShortestPathCollisionDetection(double x0, double y0, double th0, double xf, double yf, double thf, visgraph::Graph &graph);
-
-        /**
-         * @brief Calculate the multipoint shortest path
-         *
-         * @param points All the points we have to pass through
-         * @param numberOfPoints Number of points we have
-         * @return DubinsCurve** Array of DubinsCurves
-         */
-        DubinsCurve **multipointShortestPath(DubinsPoint **points, unsigned int numberOfPoints, visgraph::Graph &graph);
-
-        /**
          * @brief Helper function to plot with opencv a Dubins Arc
          *
          * @param arc DubinsArc to plot
@@ -303,14 +270,6 @@ namespace dubins
          * @param curve DubinsCurve to plot
          */
         void printDubinsCurve(DubinsCurve *curve);
-
-        /**
-         * @brief Plot with opencv a set of DubinsCurves
-         *
-         * @param curves DubinsCurves to plot
-         * @param numberOfCurves Number of curves to plot
-         */
-        void printCompletePath(DubinsCurve **curves, int numberOfCurves, std::vector<std::vector<visgraph::Point>> polygons);
 
         /**
          * @brief Find if there is an intersection between a circle and a segment
