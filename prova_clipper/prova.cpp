@@ -104,6 +104,8 @@ std::vector<Point> enlarge(std::vector<Point> points, double offset)
     return result;
 }
 
+// TODO: define method to join obstacles if collide
+
 int main() {
     ClipperLib::Path srcPoly;
     ClipperLib::Paths newPoly;
