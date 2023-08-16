@@ -10,8 +10,9 @@
 #include "clipper.hpp"
 
 struct Point {
-    double x, y, z;
-    Point(double x = -1, double y = -1, double z = -1) : x(x), y(y), z(z) {}
+    double x, y;
+    int id;
+    Point(double x = -1, double y = -1, int id = -1) : x(x), y(y), id(id) {}
 };
 
 struct Polygon {

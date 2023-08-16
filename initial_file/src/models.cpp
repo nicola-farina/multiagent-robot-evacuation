@@ -1,5 +1,7 @@
 #include "models.hpp"
 
+using namespace environment;
+
 // Getter methods
 Polygon Environment::getMap() {
     return map;
