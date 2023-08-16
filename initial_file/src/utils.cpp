@@ -96,4 +96,17 @@ namespace dubins
     {
         return a.x * b.x + a.y * b.y;
     }
+
+    int getOrientation(Point p, Point q, Point r)
+    {
+        // See https://www.geeksforgeeks.org/orientation-3-ordered-points/
+        // for details of below formula.
+        double val = (q.y - p.y) * (r.x - q.x) -
+                     (q.x - p.x) * (r.y - q.y);
+
+        if (val == 0)
+            return 0; // collinear
+
+        return (val < 0) ? 1 : -1; // clock or counterclock wise
+    }
 }
