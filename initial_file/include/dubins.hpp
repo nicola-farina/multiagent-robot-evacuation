@@ -12,11 +12,12 @@
 #define DUBINSCURVES
 
 #include "utils.hpp"
+#include "models.hpp"
 #include <vector>
 #include <iostream>
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc.hpp>
+//#include <opencv2/core/core.hpp>
+//#include <opencv2/highgui/highgui.hpp>
+//#include <opencv2/imgproc.hpp>
 
 /**
  * @brief Namespace for Dubins Curves generation
@@ -28,11 +29,11 @@ namespace dubins
      * @brief Evaluate an arc (circular or straight) composing a Dubins curve, at a given arc length s
      *
      */
-    struct DubinsLine
+    struct Line
     {
         double x, y, th;
 
-        DubinsLine(double s, double x0, double y0, double th0, double k)
+        Line(double s, double x0, double y0, double th0, double k)
         {
             double tmp = (s * sinc(k * s / 2.0) * sin(th0 + ((k * s) / 2)));
             double xtmp = y0 + tmp;
@@ -46,14 +47,14 @@ namespace dubins
      * @brief Structure representing an arc of a Dubins curve (it can be either straight or circular)
      *
      */
-    struct DubinsArc
+    struct Arc
     {
         double x0, y0, th0, k, L;
-        DubinsLine *dubins_line;
+        Line *dubins_line;
 
-        DubinsArc(double i_x0, double i_y0, double i_th0, double i_k, double i_L)
+        Arc(double i_x0, double i_y0, double i_th0, double i_k, double i_L)
         {
-            dubins_line = new DubinsLine(i_L, i_x0, i_y0, i_th0, i_k);
+            dubins_line = new Line(i_L, i_x0, i_y0, i_th0, i_k);
             x0 = i_x0;
             y0 = i_y0;
             th0 = i_th0;
@@ -61,7 +62,7 @@ namespace dubins
             L = i_L;
         }
 
-        ~DubinsArc()
+        ~Arc()
         {
             delete dubins_line;
         }
@@ -71,23 +72,23 @@ namespace dubins
      * @brief Structure representing a Dubins curve (it is composed by three arcs)
      *
      */
-    struct DubinsCurve
+    struct Curve
     {
-        DubinsArc *a1;
-        DubinsArc *a2;
-        DubinsArc *a3;
+        Arc *a1;
+        Arc *a2;
+        Arc *a3;
         double L;
 
-        DubinsCurve(double x0, double y0, double th0, double s1, double s2, double s3, double k0, double k1, double k2)
+        Curve(double x0, double y0, double th0, double s1, double s2, double s3, double k0, double k1, double k2)
         {
-            a1 = new DubinsArc(x0, y0, th0, k0, s1);
-            a2 = new DubinsArc(a1->dubins_line->x, a1->dubins_line->y, a1->dubins_line->th, k1, s2);
-            a3 = new DubinsArc(a2->dubins_line->x, a2->dubins_line->y, a2->dubins_line->th, k2, s3);
+            a1 = new Arc(x0, y0, th0, k0, s1);
+            a2 = new Arc(a1->dubins_line->x, a1->dubins_line->y, a1->dubins_line->th, k1, s2);
+            a3 = new Arc(a2->dubins_line->x, a2->dubins_line->y, a2->dubins_line->th, k2, s3);
 
             L = a1->L + a2->L + a3->L;
         }
 
-        ~DubinsCurve()
+        ~Curve()
         {
             delete a1;
             delete a2;
@@ -99,15 +100,15 @@ namespace dubins
      * @brief Structure representing the scaled parameters of the dubins problem
      *
      */
-    struct ParametersResult
+    struct DubinsResult
     {
         double scaled_th0, scaled_thf, scaled_k_max, lambda;
 
-        ParametersResult(double scaled_th0, double scaled_thf, double scaled_k_max, double lambda) : scaled_th0(scaled_th0), scaled_thf(scaled_thf), scaled_k_max(scaled_k_max), lambda(lambda) {}
+        DubinsResult(double scaled_th0, double scaled_thf, double scaled_k_max, double lambda) : scaled_th0(scaled_th0), scaled_thf(scaled_thf), scaled_k_max(scaled_k_max), lambda(lambda) {}
     };
 
     /**
-     * @brief Structure representing the solution of the original problem
+     * @brief Structure representing the solution of the problem, where s1, s2 and s3 are the lengths of the three arcs composing the curve.
      *
      */
     struct CurveSegmentsResult
@@ -166,6 +167,7 @@ namespace dubins
          * @brief All the possible angles handled by the solution of the multipoint dubins problem
          *
          */
+         // TODO: define granularity
         const double multipointAngles[8] = {0, M_PI / 4, M_PI / 2, 3.0 / 4 * M_PI, M_PI, 5.0 / 4 * M_PI, 3.0 / 2 * M_PI, 7.0 / 4 * M_PI};
         // const double multipointAngles[4] = {0, M_PI / 2, M_PI, 3.0 / 2 * M_PI};
 
@@ -193,7 +195,7 @@ namespace dubins
          * @return true If the solution is valid
          * @return false If the solution is not valid
          */
-        bool checkValidity(CurveSegmentsResult *curve_segments_result, double k0, double k1, double k2, double th0, double thf);
+        bool areCurvesValid(CurveSegmentsResult *curve_segments_result, double k0, double k1, double k2, double th0, double thf);
 
         /**
          * @brief Scale the input parameters to standard form (x0: -1, y0: 0, xf: 1, yf: 0)
@@ -204,9 +206,9 @@ namespace dubins
          * @param xf Final x position
          * @param yf Final y position
          * @param thf Final angle
-         * @return ParametersResult* Scaled parameters
+         * @return DubinsResult* Scaled parameters
          */
-        ParametersResult *scaleToStandard(double x0, double y0, double th0, double xf, double yf, double thf);
+        DubinsResult *scaleToStandard(double x0, double y0, double th0, double xf, double yf, double thf);
 
         /**
          * @brief Return to the initial scaling
@@ -218,12 +220,12 @@ namespace dubins
         CurveSegmentsResult *scaleFromStandard(double lambda, CurveSegmentsResult *curve_segments);
 
         // Functions to create a solution for the dubins problem, using different types of curves
-        CurveSegmentsResult *useLSL(double scaled_th0, double scaled_thf, double scaled_k_max);
-        CurveSegmentsResult *useRSR(double scaled_th0, double scaled_thf, double scaled_k_max);
-        CurveSegmentsResult *useLSR(double scaled_th0, double scaled_thf, double scaled_k_max);
-        CurveSegmentsResult *useRSL(double scaled_th0, double scaled_thf, double scaled_k_max);
-        CurveSegmentsResult *useRLR(double scaled_th0, double scaled_thf, double scaled_k_max);
-        CurveSegmentsResult *useLRL(double scaled_th0, double scaled_thf, double scaled_k_max);
+        CurveSegmentsResult *curveLSL(double scaled_th0, double scaled_thf, double scaled_k_max);
+        CurveSegmentsResult *curveRSR(double scaled_th0, double scaled_thf, double scaled_k_max);
+        CurveSegmentsResult *curveLSR(double scaled_th0, double scaled_thf, double scaled_k_max);
+        CurveSegmentsResult *curveRSL(double scaled_th0, double scaled_thf, double scaled_k_max);
+        CurveSegmentsResult *curveRLR(double scaled_th0, double scaled_thf, double scaled_k_max);
+        CurveSegmentsResult *curveLRL(double scaled_th0, double scaled_thf, double scaled_k_max);
 
     public:
         /**
@@ -249,27 +251,28 @@ namespace dubins
          * @param xf Final x position
          * @param yf Final y position
          * @param thf Final angle
-         * @return DubinsCurve* Resulting curve representing the shortest path
+         * @return Curve* Resulting curve representing the shortest path
          */
-        DubinsCurve *findShortestPath(double x0, double y0, double th0, double xf, double yf, double thf);
+        Curve *findShortestPath(double x0, double y0, double th0, double xf, double yf, double thf);
 
         /**
          * @brief Helper function to plot with opencv a Dubins Arc
          *
-         * @param arc DubinsArc to plot
+         * @param arc Arc to plot
          * @param image OpenCV Mat in which we want to plot
          * @param size Size of the Mat (to scale the points)
          * @param first Is this the first arc of a curve?
          * @param last Is this the last arc of a curve?
          */
-        void printDubinsArc(DubinsArc *arc, cv::Mat image, double size, bool first, bool last);
+//        void printArc(Arc *arc, cv::Mat image, double size, bool first, bool last);
+
 
         /**
          * @brief Plot with opencv a Dubins Curve
          *
-         * @param curve DubinsCurve to plot
+         * @param curve Curve to plot
          */
-        void printDubinsCurve(DubinsCurve *curve);
+//        void printCurve(Curve *curve);
 
         /**
          * @brief Find if there is an intersection between a circle and a segment
@@ -283,7 +286,7 @@ namespace dubins
          * @return true If an intersection has been found
          * @return false If an intersection has not been found
          */
-        bool intersCircleLine(DubinsPoint circleCenter, double r, DubinsPoint point1, DubinsPoint point2, std::vector<DubinsPoint> &pts, std::vector<double> &t);
+        bool circleLineIntersection(DubinsPoint circleCenter, double r, DubinsPoint point1, DubinsPoint point2, std::vector<DubinsPoint> &pts, std::vector<double> &t);
 
         /**
          * @brief Find if there is an intersection between an arc and a segment
@@ -296,7 +299,7 @@ namespace dubins
          * @return true If an intersection has been found
          * @return false If an intersection has not been found
          */
-        bool intersArcLine(DubinsArc *arc, DubinsPoint point1, DubinsPoint point2, std::vector<DubinsPoint> &pts, std::vector<double> &t);
+        bool arcLineIntersection(Arc *arc, DubinsPoint point1, DubinsPoint point2, std::vector<DubinsPoint> &pts, std::vector<double> &t);
 
         /**
          * @brief Find if there is an intersection between two segments
@@ -310,7 +313,16 @@ namespace dubins
          * @return true If an intersection has been found
          * @return false If an intersection has not been found
          */
-        bool intersLineLine(DubinsPoint p1, DubinsPoint p2, DubinsPoint p3, DubinsPoint p4, std::vector<DubinsPoint> &pts, std::vector<double> &ts);
+        bool lineLineIntersection(DubinsPoint p1, DubinsPoint p2, DubinsPoint p3, DubinsPoint p4, std::vector<DubinsPoint> &pts, std::vector<double> &ts);
+
+        double *getAnglesShortestPath(DubinsPoint **points, unsigned int numberOfPoints, std::vector<Polygon> obstacles, Polygon map);
+
+        std::vector<std::vector<Point>> getObstaclesAndMapLines(std::vector<Polygon> obstacles, Polygon map);
+
+        Curve *ShortestPathWithoutCollisions(double x0, double y0, double th0, double xf, double yf, double thf, std::vector<Polygon> obstacles, Polygon map);
+
+        Curve **multipointShortestPath(DubinsPoint **points, unsigned int numberOfPoints, std::vector<Polygon> obstacles, Polygon map);
+
     };
 
 }

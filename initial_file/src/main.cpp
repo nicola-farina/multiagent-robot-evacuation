@@ -76,6 +76,9 @@ int main(int argc, char** argv) {
     // Find the shortest path for each robot
 
     // Use the dubins library to check if the path is feasible
+    // 1. Define the dubins class
+    // 2. Define which points the path must pass through
+    // 3. Call the multipointShortestPath method, passing the points as in the class DubinsPoint, the obstacles and the map.
 
     // If the path is not feasible, find a new path
 

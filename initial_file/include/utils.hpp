@@ -15,6 +15,7 @@
 #include <cmath>
 #include <vector>
 #include <cstddef>
+#include "models.hpp"
 
 namespace dubins
 {
@@ -72,6 +73,8 @@ namespace dubins
      * @return double Dot product between provided points
      */
     double dot2D(DubinsPoint a, DubinsPoint b);
+
+    int getOrientation(Point p, Point q, Point r);
 
 }
 
