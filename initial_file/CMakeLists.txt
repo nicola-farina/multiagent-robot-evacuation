@@ -19,6 +19,7 @@ add_executable(main
         src/clipper_extensions.cpp
         src/dubins.cpp
         src/utils.cpp
+        src/vgraph.cpp
         src/main.cpp
 )
 

@@ -13,19 +13,33 @@ struct Point {
     double x, y;
     int id;
     Point(double x = -1, double y = -1, int id = -1) : x(x), y(y), id(id) {}
+    bool operator==(const Point& other) const {
+        return x == other.x && y == other.y;
+    }
 };
 
 struct Polygon {
     std::vector<Point> points;
 
     Polygon(std::vector<Point> points = std::vector<Point>()) : points(points) {}
+
+    std::vector<std::vector<Point>> getPolygonEdges() {
+        std::vector<std::vector<Point>> edges;
+        for(int i = 0; i < points.size(); i++) {
+            std::vector<Point> edge;
+            edge.push_back(points[i]);
+            edge.push_back(points[(i + 1) % points.size()]);
+            edges.push_back(edge);
+        }
+        return edges;
+    }
 };
 
 struct Robot {
-    Polygon shape;
+    Point shape;
     double radius;
 
-    Robot(Polygon shape, double radius) : shape(shape), radius(radius) {}
+    Robot(Point shape, double radius) : shape(shape), radius(radius) {}
 };
 
 
@@ -42,8 +56,8 @@ namespace environment
         Environment(const Polygon& map,
                     const std::vector<Polygon>& obstacles,
                     const std::vector<Robot>& robots,
-                    const std::vector<Polygon>& gates)
-                : map(map), robots(robots), gates(gates) {
+                    const Point& gate)
+                : map(map), robots(robots), gate(gate) {
             for (const Polygon& obstacle : obstacles) {
                 if (this->isInside(obstacle)) {
                     std::cout << "Obstacle is entirely inside the map." << std::endl;
@@ -71,13 +85,13 @@ namespace environment
 
         Robot getRobot(int i);
 
-        std::vector<Polygon> getGates();
+        Point getGate();
 
     private:
         Polygon map;
         std::vector<Polygon> obstacles;
         std::vector<Robot> robots;
-        std::vector<Polygon> gates;
+        Point gate;
 
         bool isInside(Polygon obstacle);
 

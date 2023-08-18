@@ -23,8 +23,8 @@ Robot Environment::getRobot(int i) {
     return robots[i];
 }
 
-std::vector<Polygon> Environment::getGates() {
-    return gates;
+Point Environment::getGate() {
+    return gate;
 }
 
 Polygon Environment::reshapeToMapBoundary(Polygon obstacle) {

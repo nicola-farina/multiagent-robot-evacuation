@@ -625,32 +625,16 @@ namespace dubins
     };
 
     // TODO: understand if a vector can be returned as below
-    std::vector<std::vector<Point>> Dubins::getObstaclesAndMapLines(std::vector<Polygon> obstacles, Polygon Map) {
+    std::vector<std::vector<Point>> Dubins::getObstaclesAndMapLines(std::vector<Polygon> obstacles, Polygon map) {
         std::vector<std::vector<Point>> obstaclesLines;
         for (int i = 0; i < obstacles.size(); i++) {
-            std::vector<Point> obstacleLines;
-            for (int j = 1; j < obstacles[i].points.size(); j++) {
-                obstacleLines.push_back(Point(obstacles[i].points[j-1]));
-                obstacleLines.push_back(Point(obstacles[i].points[j]));
-                obstaclesLines.push_back(obstacleLines);
-                obstacleLines.clear();
+            for (std::vector<Point> edge: obstacles[i].getPolygonEdges()) {
+                obstaclesLines.push_back(edge);
             }
-            obstacleLines.push_back(Point(obstacles[i].points[obstacles[i].points.size()-1]));
-            obstacleLines.push_back(Point(obstacles[i].points[0]));
-            obstaclesLines.push_back(obstacleLines);
-            obstacleLines.clear();
         }
-        for(int i = 1; i < Map.points.size(); i++) {
-            std::vector<Point> mapLines;
-            mapLines.push_back(Point(Map.points[i-1]));
-            mapLines.push_back(Point(Map.points[i]));
-            obstaclesLines.push_back(mapLines);
-            mapLines.clear();
+        for(std::vector<Point> edge: map.getPolygonEdges()) {
+            obstaclesLines.push_back(edge);
         }
-        std::vector<Point> mapLines;
-        mapLines.push_back(Point(Map.points[Map.points.size()-1]));
-        mapLines.push_back(Point(Map.points[0]));
-        obstaclesLines.push_back(mapLines);
         return obstaclesLines;
     }
 
