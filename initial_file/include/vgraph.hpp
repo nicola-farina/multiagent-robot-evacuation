@@ -43,6 +43,8 @@ namespace vgraph {
 
         std::vector<Edge> getEdges();
 
+        std::map<Point, std::vector<AdjacentNode>> getAdj();
+
         bool existEdge(Node start, Node end);
 
         Edge getEdge(Node start, Node end);
@@ -50,6 +52,7 @@ namespace vgraph {
         bool intersectsObstacle(Point start, Point end, std::vector<Polygon> obstacles);
 
         bool intersectsLine(Point p1, Point p2, Polygon obstacle);
+
 
         bool lineIntersectsSegment(Point p1, Point q1, Point p2, Point q2);
 

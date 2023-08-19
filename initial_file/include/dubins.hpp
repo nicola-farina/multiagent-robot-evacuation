@@ -15,9 +15,9 @@
 #include "models.hpp"
 #include <vector>
 #include <iostream>
-//#include <opencv2/core/core.hpp>
-//#include <opencv2/highgui/highgui.hpp>
-//#include <opencv2/imgproc.hpp>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 /**
  * @brief Namespace for Dubins Curves generation
@@ -322,6 +322,23 @@ namespace dubins
         Curve *ShortestPathWithoutCollisions(double x0, double y0, double th0, double xf, double yf, double thf, std::vector<Polygon> obstacles, Polygon map);
 
         Curve **multipointShortestPath(DubinsPoint **points, unsigned int numberOfPoints, std::vector<Polygon> obstacles, Polygon map);
+
+        void printDubinsArc(Arc *arc, cv::Mat image, double size, bool first, bool last);
+
+        /**
+         * @brief Plot with opencv a Dubins Curve
+         *
+         * @param curve DubinsCurve to plot
+         */
+        void printDubinsCurve(Curve *curve);
+
+        /**
+         * @brief Plot with opencv a set of DubinsCurves
+         *
+         * @param curves DubinsCurves to plot
+         * @param numberOfCurves Number of curves to plot
+         */
+        void printCompletePath(std::vector<Curve> curves, int numberOfCurves, std::vector<Polygon> polygons);
 
     };
 

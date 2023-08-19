@@ -4,6 +4,9 @@ project(initial_file)
 ## Compile as C++17, supported in ROS humble and newer
 add_compile_options(-std=c++17)
 
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
+
 find_package(OpenCV REQUIRED)
 
 ## Specify additional locations of header files

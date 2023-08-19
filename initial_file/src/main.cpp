@@ -20,12 +20,14 @@ int main(int argc, char** argv) {
 
     // Read the map size
 
-    Polygon map = Polygon({Point(0, 0), Point(0, 20), Point(20, 20), Point(20, 0)});
-    Polygon obstacle = Polygon({Point(2, 2), Point(2, 4), Point(4, 4), Point(4, 2)});
-    Polygon obstacle2 = Polygon({Point(6, 3), Point(6, 5), Point(8, 5), Point(8, 3)});
-    std::vector<Polygon> obstacles = {obstacle, obstacle2};
-    std::vector<Robot> robots = {Robot(Point(0, 0), 0.5)};
-    Point gate = {Point(9, 9)};
+    Polygon map = Polygon({Point(-100, 100), Point(100, 100), Point(100, -100), Point(-100, -100)});
+    Polygon obstacle = Polygon({Point(20, 20), Point(30, 20), Point(30, 10), Point(20, 10)});
+//    Polygon obstacle = Polygon({Point(10, 68), Point(80, 68), Point(80, 30), Point(10, 30)});
+//    Polygon obstacle2 = Polygon({Point(35, 40), Point(45, 40), Point(45, 60), Point(35, 60)});
+//    Polygon obstacle3 = Polygon({Point(20, 40), Point(30, 40), Point(30, 60), Point(20, 60)});
+    std::vector<Polygon> obstacles = {obstacle};
+    std::vector<Robot> robots = {Robot(Point(25, 0), 0.5)};
+    Point gate = {Point(25, 74)};
     environment::Environment env(map, obstacles, robots, gate);
 
     // Enlarge the obstacles and merge them if they collide
@@ -75,7 +77,7 @@ int main(int argc, char** argv) {
     std::cout << std::endl;
 
     // Create the graph using an algorithm of your choice
-    vgraph::VGraph visGraph = vgraph::VGraph(env.getRobots(), obstacles, env.getGate());
+    vgraph::VGraph visGraph = vgraph::VGraph(env.getRobots(), enlargedObstaclesForGraph, env.getGate());
     std::cout << "Created graph" << std::endl;
     for(vgraph::Edge edge: visGraph.getEdges()) {
         std::cout << "Edge: " << edge.start.position.x << " " << edge.start.position.y;
@@ -84,8 +86,22 @@ int main(int argc, char** argv) {
     }
 
     std::cout << "EDGES: " << visGraph.getEdges().size() << std::endl;
+
+    std::map<Point, std::vector<vgraph::AdjacentNode>> adj = visGraph.getAdj();
+
+    for(auto it = adj.begin(); it != adj.end(); ++it) {
+        std::cout << "Node: " << it->first.x << " " << it->first.y << std::endl;
+        std::cout << "Adjacent nodes: " << std::endl;
+        for(vgraph::AdjacentNode node : it->second) {
+            std::cout << node.point.x << " " << node.point.y << std::endl;
+            std::cout << "Distance: " << node.distance << std::endl;
+        }
+    }
+
     // Find the shortest path for each robot
     std::vector<Point> shortest = visGraph.shortestPath(robots[0].shape, gate);
+    std::cout << "Shortest path len: " << shortest.size() << std::endl;
+
     for (Point point : shortest) {
         std::cout << "Point: " << point.x << " " << point.y << std::endl;
     }
@@ -96,22 +112,34 @@ int main(int argc, char** argv) {
 
 
     // 2. Define which points the path must pass through
-    dubins::DubinsPoint **points = new dubins::DubinsPoint *[4];
-    points[0] = new dubins::DubinsPoint(8, 2, 0);
-    for(int i = 1; i < 4; i++) {
-        points[i] = new dubins::DubinsPoint(8+i, 2+i);
-    }
-
-    // 3. Call the multipointShortestPath method, passing the points as in the class DubinsPoint, the obstacles and the map.
-    dubins::Curve **curves = dubins.multipointShortestPath(points, 4, obstacles, map);
-    if (curves == nullptr) {
-        std::cout << "UNABLE TO COMPUTE A PATH FOR GIVEN INPUT\n";
-        for(int i = 0; i < 4; i++) {
-            delete points[i];
+    std::vector<dubins::DubinsPoint> points;
+    for(int i = 0; i < shortest.size(); i++) {
+        dubins::DubinsPoint point;
+        if(i == 0) {
+            point = dubins::DubinsPoint(shortest[i].x, shortest[i].y, robots[0].radius);
+        } else {
+            point = dubins::DubinsPoint(shortest[i].x, shortest[i].y);
         }
-        delete[] points;
+        points.push_back(point);
+    }
+    std::cout << "Defined points" << std::endl;
+    // 3. Call the multipointShortestPath method, passing the points as in the class DubinsPoint, the obstacles and the map.
+    std::vector<dubins::Curve> curves = dubins.multipointShortestPath(points, shortest.size(), enlargedObstaclesForCollisionDetection, map);
+    std::cout << "Computed path" << std::endl;
+    if (curves.size() != shortest.size()) {
+        std::cout << "UNABLE TO COMPUTE A PATH FOR GIVEN INPUT\n";
+//        for(int i = 0; i < 4; i++) {
+//            delete points[i];
+//        }
+//        delete[] points;
     } else {
         std::cout << "COMPLETED MULTIPOINT SHORTEST PATH SUCCESSFULLY\n";
+        dubins.printCompletePath(curves, shortest.size()-1, obstacles);
+//        for (int i = 0; i < curves[0]->getLength(); i++) {
+//            std::cout << "Point: " << curves[0]->a1. << " " << curves[0]->getPoint(i).y << std::endl;
+//        }
+
+//        }
     }
 
     // If the path is not feasible, find a new path
