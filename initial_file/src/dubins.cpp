@@ -779,6 +779,7 @@ namespace dubins
             }
 
             // Now that we have everything we need, calculate the optimal multipoint shortest pathShortestPathWithoutCollisions
+            Curve **curves = new Curve*[numberOfPoints-1];
             for (int i = 0; i < numberOfPoints-1; i++) {
                 int index = numberOfPoints-i-1;
                 curves[i] = ShortestPathWithoutCollisions(newPoints[index]->x, newPoints[index]->y, mod2pi(angles[index] + M_PI), newPoints[index-1]->x, newPoints[index-1]->y, mod2pi(angles[index-1] + M_PI), obstacles, map);
@@ -998,32 +999,42 @@ namespace dubins
         cv::waitKey(0);
     }
 
-    void Dubins::printCompletePath(std::vector<Curve> curves, int numberOfCurves, std::vector<Polygon> polygons) {
+    void Dubins::printCompletePath(Curve **curves, int numberOfCurves, std::vector<Polygon> polygons) {
         cv::Mat image(500, 500, CV_8UC3, cv::Scalar(0, 0, 0));
         cv::Mat flipped;
 
         double maxx = -INFINITY, minx = INFINITY, maxy = -INFINITY, miny = INFINITY;
         for (int i = 0; i < numberOfCurves; i++) {
-            maxx = std::max({maxx, curves[i].a1->x0, curves[i].a1->dubins_line->x, curves[i].a2->x0, curves[i].a2->dubins_line->x, curves[i].a3->x0, curves[i].a3->dubins_line->x});
-            minx = std::min({minx, curves[i].a1->x0, curves[i].a1->dubins_line->x, curves[i].a2->x0, curves[i].a2->dubins_line->x, curves[i].a3->x0, curves[i].a3->dubins_line->x});
-            maxy = std::max({maxy, curves[i].a1->y0, curves[i].a1->dubins_line->y, curves[i].a2->y0, curves[i].a2->dubins_line->y, curves[i].a3->y0, curves[i].a3->dubins_line->y});
-            miny = std::min({miny, curves[i].a1->y0, curves[i].a1->dubins_line->y, curves[i].a2->y0, curves[i].a2->dubins_line->y, curves[i].a3->y0, curves[i].a3->dubins_line->y});
+            maxx = std::max({maxx, curves[i]->a1->x0, curves[i]->a1->dubins_line->x, curves[i]->a2->x0,
+                             curves[i]->a2->dubins_line->x, curves[i]->a3->x0, curves[i]->a3->dubins_line->x});
+            minx = std::min({minx, curves[i]->a1->x0, curves[i]->a1->dubins_line->x, curves[i]->a2->x0,
+                             curves[i]->a2->dubins_line->x, curves[i]->a3->x0, curves[i]->a3->dubins_line->x});
+            maxy = std::max({maxy, curves[i]->a1->y0, curves[i]->a1->dubins_line->y, curves[i]->a2->y0,
+                             curves[i]->a2->dubins_line->y, curves[i]->a3->y0, curves[i]->a3->dubins_line->y});
+            miny = std::min({miny, curves[i]->a1->y0, curves[i]->a1->dubins_line->y, curves[i]->a2->y0,
+                             curves[i]->a2->dubins_line->y, curves[i]->a3->y0, curves[i]->a3->dubins_line->y});
         }
 
         double size = std::max(maxx, maxy);
 
 
         for (int i = 0; i < numberOfCurves; i++) {
-            printDubinsArc(curves[i].a1, image, size, true, false);
-            printDubinsArc(curves[i].a2, image, size, false, false);
-            printDubinsArc(curves[i].a3, image, size, false, true);
+            printDubinsArc(curves[i]->a1, image, size, true, false);
+            printDubinsArc(curves[i]->a2, image, size, false, false);
+            printDubinsArc(curves[i]->a3, image, size, false, true);
         }
 
         //Still need to understand how much I need to multiply
-        for (int i = 0; i < polygons.size(); i++){
-            cv::line(image, cv::Point2f(polygons[i].points[polygons[i].points.size() - 1].x/size*500, polygons[i].points[polygons[i].points.size() - 1].y/size*500), cv::Point2f(polygons[i].points[0].x/size*500, polygons[i].points[0].y/size*500), cv::Scalar(255, 255, 0), 2);
-            for (int j = 1; j < polygons[i].points.size(); j++){
-                cv::line(image, cv::Point2f(polygons[i].points[j-1].x/size*500, polygons[i].points[j-1].y/size*500), cv::Point2f(polygons[i].points[j].x/size*500, polygons[i].points[j].y/size*500), cv::Scalar(255, 255, 0), 2);
+        for (int i = 0; i < polygons.size(); i++) {
+            cv::line(image, cv::Point2f(polygons[i].points[polygons[i].points.size() - 1].x / size * 500,
+                                        polygons[i].points[polygons[i].points.size() - 1].y / size * 500),
+                     cv::Point2f(polygons[i].points[0].x / size * 500, polygons[i].points[0].y / size * 500),
+                     cv::Scalar(255, 255, 0), 2);
+            for (int j = 1; j < polygons[i].points.size(); j++) {
+                cv::line(image, cv::Point2f(polygons[i].points[j - 1].x / size * 500,
+                                            polygons[i].points[j - 1].y / size * 500),
+                         cv::Point2f(polygons[i].points[j].x / size * 500, polygons[i].points[j].y / size * 500),
+                         cv::Scalar(255, 255, 0), 2);
             }
         }
 

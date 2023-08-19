@@ -338,7 +338,7 @@ namespace dubins
          * @param curves DubinsCurves to plot
          * @param numberOfCurves Number of curves to plot
          */
-        void printCompletePath(std::vector<Curve> curves, int numberOfCurves, std::vector<Polygon> polygons);
+        void printCompletePath(Curve **curves, int numberOfCurves, std::vector<Polygon> polygons);
 
     };
 

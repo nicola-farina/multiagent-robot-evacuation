@@ -112,21 +112,16 @@ int main(int argc, char** argv) {
 
 
     // 2. Define which points the path must pass through
-    std::vector<dubins::DubinsPoint> points;
-    for(int i = 0; i < shortest.size(); i++) {
-        dubins::DubinsPoint point;
-        if(i == 0) {
-            point = dubins::DubinsPoint(shortest[i].x, shortest[i].y, robots[0].radius);
-        } else {
-            point = dubins::DubinsPoint(shortest[i].x, shortest[i].y);
-        }
-        points.push_back(point);
+    dubins::DubinsPoint **points = new dubins::DubinsPoint *[shortest.size()];
+    points[0] = new dubins::DubinsPoint(shortest[0].x, shortest[0].y, robots[0].radius);
+    for(int i = 1; i < 4; i++) {
+        points[i] = new dubins::DubinsPoint(shortest[i].x, shortest[i].y);
     }
     std::cout << "Defined points" << std::endl;
     // 3. Call the multipointShortestPath method, passing the points as in the class DubinsPoint, the obstacles and the map.
-    std::vector<dubins::Curve> curves = dubins.multipointShortestPath(points, shortest.size(), enlargedObstaclesForCollisionDetection, map);
+    dubins::Curve **curves = dubins.multipointShortestPath(points, shortest.size(), enlargedObstaclesForCollisionDetection, map);
     std::cout << "Computed path" << std::endl;
-    if (curves.size() != shortest.size()) {
+    if (curves == nullptr) {
         std::cout << "UNABLE TO COMPUTE A PATH FOR GIVEN INPUT\n";
 //        for(int i = 0; i < 4; i++) {
 //            delete points[i];
