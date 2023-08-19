@@ -85,7 +85,10 @@ int main(int argc, char** argv) {
 
     std::cout << "EDGES: " << visGraph.getEdges().size() << std::endl;
     // Find the shortest path for each robot
-
+    std::vector<Point> shortest = visGraph.shortestPath(robots[0].shape, gate);
+    for (Point point : shortest) {
+        std::cout << "Point: " << point.x << " " << point.y << std::endl;
+    }
     // Use the dubins library to check if the path is feasible
 
     // 1. Define the dubins class

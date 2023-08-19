@@ -16,6 +16,11 @@ struct Point {
     bool operator==(const Point& other) const {
         return x == other.x && y == other.y;
     }
+
+    bool operator<(const Point& point2) const
+    {
+        return (x < point2.x) || (x == point2.x && y < point2.y);
+    }
 };
 
 struct Polygon {

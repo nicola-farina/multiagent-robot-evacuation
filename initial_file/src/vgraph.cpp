@@ -41,6 +41,12 @@ namespace vgraph {
                                                pow(robot.shape.y - otherRobot.shape.y, 2));
                         Edge edge = Edge(robot.shape, otherRobot.shape, distance);
                         edges.push_back(edge);
+                        // push in the adj map the robot shape and the other robot shape
+                        AdjacentNode adj_node = AdjacentNode(otherRobot.shape, distance);
+                        adj[robot.shape].push_back(adj_node);
+
+                        adj_node = AdjacentNode(robot.shape, distance);
+                        adj[otherRobot.shape].push_back(adj_node);
                     }
                 }
             }
@@ -52,6 +58,11 @@ namespace vgraph {
                 double distance = sqrt(pow(robot.shape.x - gate.x, 2) + pow(robot.shape.y - gate.y, 2));
                 Edge edge = Edge(robot.shape, gate, distance);
                 edges.push_back(edge);
+                // push in the adj map the robot shape and the gate
+                AdjacentNode adj_node = AdjacentNode(gate, distance);
+                adj[robot.shape].push_back(adj_node);
+                adj_node = AdjacentNode(robot.shape, distance);
+                adj[gate].push_back(adj_node);
             }
         }
 
@@ -65,6 +76,11 @@ namespace vgraph {
                         double distance = sqrt(pow(robot.shape.x - point.x, 2) + pow(robot.shape.y - point.y, 2));
                         Edge edge = Edge(robot.shape, point, distance);
                         edges.push_back(edge);
+                        // push in the adj map the robot shape and the point
+                        AdjacentNode adj_node = AdjacentNode(point, distance);
+                        adj[robot.shape].push_back(adj_node);
+                        adj_node = AdjacentNode(robot.shape, distance);
+                        adj[point].push_back(adj_node);
                     }
                 }
             }
@@ -78,6 +94,11 @@ namespace vgraph {
                 double distance = sqrt(pow(point.x - otherPoint.x, 2) + pow(point.y - otherPoint.y, 2));
                 Edge edge = Edge(point, otherPoint, distance);
                 edges.push_back(edge);
+                // push in the adj map the point and the other point
+                AdjacentNode adj_node = AdjacentNode(otherPoint, distance);
+                adj[point].push_back(adj_node);
+                adj_node = AdjacentNode(point, distance);
+                adj[otherPoint].push_back(adj_node);
             }
         }
 
@@ -93,6 +114,11 @@ namespace vgraph {
                                 double distance = sqrt(pow(point.x - otherPoint.x, 2) + pow(point.y - otherPoint.y, 2));
                                 Edge edge = Edge(point, otherPoint, distance);
                                 edges.push_back(edge);
+                                // push in the adj map the point and the other point
+                                AdjacentNode adj_node = AdjacentNode(otherPoint, distance);
+                                adj[point].push_back(adj_node);
+                                adj_node = AdjacentNode(point, distance);
+                                adj[otherPoint].push_back(adj_node);
                             }
                         }
                     }
@@ -107,6 +133,11 @@ namespace vgraph {
                     double distance = sqrt(pow(point.x - gate.x, 2) + pow(point.y - gate.y, 2));
                     Edge edge = Edge(point, gate, distance);
                     edges.push_back(edge);
+                    // push in the adj map the point and the gate
+                    AdjacentNode adj_node = AdjacentNode(gate, distance);
+                    adj[point].push_back(adj_node);
+                    adj_node = AdjacentNode(point, distance);
+                    adj[gate].push_back(adj_node);
                 }
             }
         }
@@ -194,6 +225,63 @@ namespace vgraph {
         if (val == 0) return 0;  // collinear
 
         return (val > 0)? 1: 2; // clock or counterclock wise
+    }
+
+    std::vector<Point> VGraph::shortestPath(Point origin, Point destination) {
+        std::map<Point, double> dist;
+        std::map<Point, Point> prev;
+
+        std::set<std::pair<double, Point>> setVerticesProcessed;
+
+        setVerticesProcessed.insert(std::make_pair(0, origin));
+        dist[origin] = 0;
+
+        // Loop until all shortest distances are finalized (or until the destination is found)
+        while(!setVerticesProcessed.empty()) {
+            // First vertex in the set - the min distance vertex
+            std::pair<double, Point> tmp = *(setVerticesProcessed.begin());
+            setVerticesProcessed.erase(setVerticesProcessed.begin());
+
+            Point u = tmp.second;
+
+            // If we reached the destination, we can stop
+            if(u == destination) {
+                break;
+            }
+
+            // Loop through all adjacent vertices of the point u
+            for (AdjacentNode e : adj[u]) {
+                Point v = e.point;
+                // The weight is simply the distance between the points
+                double weight = e.distance;
+
+                // If there is a shortest path from v through u (or it's the first one we find)
+                if (!dist.count(v) || dist[v] > dist[u]+weight) {
+                    // If we already had a distance from v through u, erase it (then we will insert the new one)
+                    if (dist.count(v)) {
+                        setVerticesProcessed.erase(setVerticesProcessed.find(std::make_pair(dist[v], v)));
+                        prev.erase(prev.find(v));
+                    }
+
+                    // Update the distance from the point v
+                    dist[v] = dist[u] + weight;
+                    setVerticesProcessed.insert(std::make_pair(dist[v], v));
+                    prev.insert(std::make_pair(v,u));
+                }
+            }
+        }
+
+        // Reconstruct the path using prev. Start from destination
+        std::vector<Point> path;
+        while(true){
+            path.push_back(destination);
+            if(destination == origin) break;
+            destination = prev.find(destination)->second;
+        }
+        // Reverse the path
+        reverse(path.begin(), path.end());
+
+        return path;
     }
 
     // The main function that returns true if line segment 'p1q1'

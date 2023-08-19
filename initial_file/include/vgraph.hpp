@@ -7,6 +7,8 @@
 
 #include <vector>
 #include "models.hpp"
+#include <map>
+
 
 namespace vgraph {
 
@@ -14,6 +16,13 @@ namespace vgraph {
         Point position;
 
         Node(Point position) : position(position) {}
+    };
+
+
+    struct AdjacentNode {
+        Point point;
+        double distance;
+        AdjacentNode(Point point, double distance) : point(point), distance(distance) {}
     };
 
     struct Edge {
@@ -48,6 +57,8 @@ namespace vgraph {
 
         int orientation(Point p, Point q, Point r);
 
+        std::vector<Point> shortestPath(Point origin, Point destination);
+
     private:
         std::vector<Node> nodes;
         std::vector<Edge> edges;
@@ -55,6 +66,7 @@ namespace vgraph {
         std::vector<Polygon> obstacles;
         Point gate;
         Polygon map;
+        std::map<Point, std::vector<AdjacentNode>> adj;
     };
 }
 
