@@ -256,39 +256,6 @@ namespace dubins
         Curve *findShortestPath(double x0, double y0, double th0, double xf, double yf, double thf);
 
         /**
-         * @brief Helper function to plot with opencv a Dubins Arc
-         *
-         * @param arc Arc to plot
-         * @param image OpenCV Mat in which we want to plot
-         * @param size Size of the Mat (to scale the points)
-         * @param first Is this the first arc of a curve?
-         * @param last Is this the last arc of a curve?
-         */
-//        void printArc(Arc *arc, cv::Mat image, double size, bool first, bool last);
-
-
-        /**
-         * @brief Plot with opencv a Dubins Curve
-         *
-         * @param curve Curve to plot
-         */
-//        void printCurve(Curve *curve);
-
-        /**
-         * @brief Find if there is an intersection between a circle and a segment
-         *
-         * @param circleCenter Center of the input circle
-         * @param r Radius of the input circle
-         * @param point1 First point used to define the segment
-         * @param point2 Second point used to define the segment
-         * @param pts Array of intersection points this function has found (passed by ref.)
-         * @param t Coefficient to normalize the segment (passed by ref.)
-         * @return true If an intersection has been found
-         * @return false If an intersection has not been found
-         */
-        bool circleLineIntersection(DubinsPoint circleCenter, double r, DubinsPoint point1, DubinsPoint point2, std::vector<DubinsPoint> &pts, std::vector<double> &t);
-
-        /**
          * @brief Find if there is an intersection between an arc and a segment
          *
          * @param arc Arc of a Dubins curve
