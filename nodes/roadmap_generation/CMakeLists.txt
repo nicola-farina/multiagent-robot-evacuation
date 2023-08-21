@@ -10,6 +10,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(obstacles_msgs REQUIRED)
+find_package(roadmap_msgs REQUIRED)
 
 include_directories(
         include
@@ -27,6 +28,7 @@ ament_target_dependencies(roadmap_generation
   rclcpp
   geometry_msgs
   obstacles_msgs
+  roadmap_msgs
 )
 
 
