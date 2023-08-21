@@ -16,7 +16,7 @@ find_package(builtin_interfaces REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 
-rosidl_generate_interfaces(obstacles_msgs
+rosidl_generate_interfaces(roadmap_msgs
         "msg/NodeMsg.msg"
         "msg/EdgeMsg.msg"
         "msg/RoadmapMsg.msg"

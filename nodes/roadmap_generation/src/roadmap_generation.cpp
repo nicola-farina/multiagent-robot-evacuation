@@ -3,7 +3,7 @@
 #include "obstacles_msgs/msg/obstacle_array_msg.hpp"
 #include "obstacles_msgs/msg/obstacle_msg.hpp"
 #include "geometry_msgs/msg/pose.hpp"
-#include "roadmap_msgs/msg/roadmap.hpp"
+#include "roadmap_msgs/msg/roadmap_msg.hpp"
 #include "clipper.hpp"
 #include "clipper_extensions.hpp"
 #include "models.hpp"
@@ -86,35 +86,35 @@ int main(int argc, char** argv) {
     vgraph::VGraph visGraph = vgraph::VGraph({shelfino1, shelfino2, shelfino3}, polygonsForVisgraph, gate);
 
     // publish visGraph.
-    roadmap_publisher = node->create_publisher<roadmap_msgs::msg::Roadmap>("roadmap", 10);
+    roadmap_publisher = node->create_publisher<roadmap_msgs::msg::RoadmapMsg>("roadmap", 10);
     // Convert the VGraph to a Roadmap message
-    roadmap_msgs::msg::Roadmap roadmap_msg;
+    roadmap_msgs::msg::RoadmapMsg roadmap_msg;
     for (const auto& node : vgraph.nodes) {
         // Convert VGraph Node to Roadmap Node
-        roadmap_msgs::msg::Node roadmap_node;
+        roadmap_msgs::msg::NodeMsg roadmap_node;
         roadmap_node.x = node.position.x;
         roadmap_node.y = node.position.y;
-        roadmap_msg.nodes.push_back(roadmap_node);
+        roadmap_msgs.nodes.push_back(roadmap_node);
     }
     for (const auto& edge : vgraph.edges) {
         // Convert VGraph Edge to Roadmap Edge
-        your_package_name::msg::Edge roadmap_edge;
-        roadmap_msgs::msg::Node roadmap_node1;
+        roadmap_msgs::msg::EdgeMsg roadmap_edge;
+        roadmap_msgs::msg::NodeMsg roadmap_node1;
         roadmap_node1.x = edge.start.position.x;
         roadmap_node1.y = edge.start.position.y;
 
-        roadmap_msgs::msg::Node roadmap_node2;
+        roadmap_msgs::msg::NodeMsg roadmap_node2;
         roadmap_node2.x = edge.start.position.x;
         roadmap_node2.y = edge.start.position.y;
 
         roadmap_edge.node1 = roadmap_node1;
         roadmap_edge.node2 = roadmap_node2;
         roadmap_edge.weight = edge.weight;
-        roadmap_msg.edges.push_back(roadmap_edge);
+        roadmap_msgs.edges.push_back(roadmap_edge);
     }
 
 // Publish the Roadmap message
-    roadmap_publisher->publish(roadmap_msg);
+    roadmap_publisher->publish(roadmap_msgs);
 
     return 0;
 }

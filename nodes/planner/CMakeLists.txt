@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(roadmap_generation)
+project(.)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -16,8 +16,8 @@ include_directories(
         include
 )
 
-add_executable(roadmap_generation
-        src/roadmap_generation.cpp
+add_executable(.
+        src/planner.cpp
         src/clipper.cpp
         src/clipper_extensions.cpp
         src/models.cpp
@@ -33,7 +33,7 @@ ament_target_dependencies(roadmap_generation
 
 
 # Install the executable
-install(TARGETS roadmap_generation
+install(TARGETS tentative
   DESTINATION lib/${PROJECT_NAME}
 )
 
