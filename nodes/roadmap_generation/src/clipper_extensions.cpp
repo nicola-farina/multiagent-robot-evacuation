@@ -16,7 +16,7 @@ std::vector<Point> enlarge(std::vector<Point> points, double offset)
 {
     ClipperLib::Path subj;
     ClipperLib::Paths solution;
-    for (int i = 0; i < points.size(); i++)
+    for (std::vector<Point>::size_type i = 0; i < points.size(); i++)
     {
         subj << ClipperLib::IntPoint(points[i].x*1000, points[i].y*1000);
     }
@@ -94,7 +94,7 @@ std::vector<std::vector<Polygon>> enlargeAndJoinObstacles(std::vector<Polygon> p
     std::vector<Polygon> smallPolygons;
 
     //We convert each polygon to a "slightly bigger" and a "bigger" version and then we push then into different vectors
-    for (int i = 0; i < polygonsList.size(); i++){
+    for (std::vector<Polygon>::size_type i = 0; i < polygonsList.size(); i++){
         std::vector<Polygon> results;
         results = enlargeObstaclesWithTwoOffsets(polygonsList[i], offset);
         bigPolygons.push_back(results[0]);

@@ -272,6 +272,14 @@ class Int128
       return *this;
     }
 
+    Int128& operator=(const Int128& other) {
+        if (this != &other) {
+            lo = other.lo;
+            hi = other.hi;
+        }
+        return *this;
+    }
+
     bool operator == (const Int128 &val) const
       {return (hi == val.hi && lo == val.lo);}
 
@@ -718,12 +726,25 @@ void DisposeOutPts(OutPt*& pp)
 
 inline void InitEdge(TEdge* e, TEdge* eNext, TEdge* ePrev, const IntPoint& Pt)
 {
-  std::memset(e, 0, sizeof(TEdge));
-  e->Next = eNext;
-  e->Prev = ePrev;
-  e->Curr = Pt;
-  e->OutIdx = Unassigned;
+    e->Bot = IntPoint(0, 0);
+    e->Curr = Pt;
+    e->Top = IntPoint(0, 0);
+    e->Dx = 0.0;
+//    e->PolyTyp = PolyType::Subject; // Initialize with the appropriate value
+//    e->Side = EdgeSide::Left; // Initialize with the appropriate value
+    e->WindDelta = 0; // Initialize with the appropriate value
+    e->WindCnt = 0;
+    e->WindCnt2 = 0;
+    e->OutIdx = 0;
+    e->Next = eNext;
+    e->Prev = ePrev;
+    e->NextInLML = nullptr;
+    e->NextInAEL = nullptr;
+    e->PrevInAEL = nullptr;
+    e->NextInSEL = nullptr;
+    e->PrevInSEL = nullptr;
 }
+
 //------------------------------------------------------------------------------
 
 void InitEdge2(TEdge& e, PolyType Pt)

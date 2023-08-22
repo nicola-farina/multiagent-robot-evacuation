@@ -31,8 +31,8 @@ namespace vgraph {
 //        exit(0);
 
         // Compute the edges between robots
-        for (int i = 0; i < robots.size(); i++) {
-            for (int j = 0; j < robots.size(); j++) {
+        for (std::vector<Robot>::size_type i = 0; i < robots.size(); i++) {
+            for (std::vector<Robot>::size_type j = 0; j < robots.size(); j++) {
                 if (i < j) {
                     Robot robot = robots[i];
                     Robot otherRobot = robots[j];
@@ -103,8 +103,8 @@ namespace vgraph {
         }
 
         // Compute the edges between obstacles
-        for(int i = 0; i<obstacles.size(); i++) {
-            for (int j = 0; j<obstacles.size(); j++) {
+        for(std::vector<Polygon>::size_type i = 0; i<obstacles.size(); i++) {
+            for (std::vector<Polygon>::size_type j = 0; j<obstacles.size(); j++) {
                 if(i<j) {
                     Polygon obstacle = obstacles[i];
                     Polygon otherObstacle = obstacles[j];
@@ -153,6 +153,10 @@ namespace vgraph {
 
     std::vector<Edge> VGraph::getEdges() {
         return edges;
+    }
+
+    std::vector<Node> VGraph::getNodes() {
+        return nodes;
     }
 
     std::map<Point, std::vector<AdjacentNode>> VGraph::getAdj() {

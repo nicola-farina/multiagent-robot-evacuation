@@ -43,6 +43,8 @@ namespace vgraph {
 
         std::vector<Edge> getEdges();
 
+        std::vector<Node> getNodes();
+
         std::map<Point, std::vector<AdjacentNode>> getAdj();
 
         bool existEdge(Node start, Node end);
