@@ -2,159 +2,128 @@
 #include "geometry_msgs/msg/polygon.hpp"
 #include "obstacles_msgs/msg/obstacle_array_msg.hpp"
 #include "obstacles_msgs/msg/obstacle_msg.hpp"
+#include "geometry_msgs/msg/pose_array.hpp"
 #include "geometry_msgs/msg/pose.hpp"
-#include "roadmap_msgs/msg/roadmap.hpp"
+#include "roadmap_msgs/msg/roadmap_msg.hpp"
 #include "clipper.hpp"
 #include "clipper_extensions.hpp"
 #include "models.hpp"
 #include "vgraph.hpp"
+#include "dubins.hpp"
+#include "utils.hpp"
 #include <vector>
+#include <chrono>
+
 
 bool mapReceived = false;
 bool gateReceived = false;
 bool obstaclesPositionsReceived = false;
-//bool shelfino1PositionsReceived = false;
-//bool shelfino2PositionsReceived = false;
-//bool shelfino3PositionsReceived = false;
+bool roadmapReceived = false;
 
 geometry_msgs::msg::Polygon mapData;
 obstacles_msgs::msg::ObstacleArrayMsg obstaclesData;
-geometry_msgs::msg::Pose gateData;
-//your_msgs::RobotPositionMsg shelfino1Data;
-//your_msgs::RobotPositionMsg shelfino2Data;
-//your_msgs::RobotPositionMsg shelfino3Data;
+geometry_msgs::msg::PoseArray gateData;
 
-//struct RobotPose {
-//    double x;
-//    double y;
-//    double z;
-//    double roll;
-//    double pitch;
-//    double yaw;
-//
-//    RobotPose(double x, double y, double z, double roll, double pitch, double yaw) : x(x), y(y), z(z), roll(roll), pitch(pitch), yaw(yaw) {}
-//};
+void roadmapCallback(const roadmap_msgs::msg::RoadmapMsg::SharedPtr msg) {
+    if (!roadmapReceived && mapReceived && gateReceived && obstaclesPositionsReceived) {
+        roadmapReceived = true;
+        roadmap_msgs::msg::RoadmapMsg roadmapData = *msg;
+        RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Roadmap received!");
+        // Re-build the roadmap.
+        std::vector<Polygon> obstacles;
+        // Generate the obstacles using our data structure.
+        for (obstacles_msgs::msg::ObstacleMsg obstacle_msg: obstaclesData.obstacles) {
+            std::vector<Point> obstacle_points;
+            for (geometry_msgs::msg::Point32 point: obstacle_msg.polygon.points) {
+                obstacle_points.push_back(Point(point.x, point.y));
+            }
+            Polygon polygon = Polygon(obstacle_points);
+            obstacles.push_back(polygon);
+            obstacle_points.clear();
+        }
+        std::vector<Robot> robots;
 
-//RobotPose* getRobotPose(rclpp::Node node, std::string robot_name) {
-//    std::string target_frame_ = node->declare_parameter<std::string>("target_frame", robot_name);
-//    std::shared_ptr<tf2_ros::TransformListener> tf_listener{nullptr};
-//    std::unique_ptr<tf2_ros::Buffer> tf_buffer;
-//    tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-//    tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-//    std::string fromFrameRel = target_frame_.c_str();
-//    std::string toFrameRel = "map";
-//    geometry_msgs::msg::TransformStamped t;
-//    try {
-//        t = tf_buffer->lookupTransform(toFrameRel, fromFrameRel, tf2::TimePointZero, 5s);
-//    } catch (const tf2::TransformException & ex) {
-//        RCLCPP_INFO(node->get_logger(), "Could not transform %s to %s: %s",toFrameRel.c_str(), fromFrameRel.c_str(), ex.what());
-//        return;
-//    }
-//    tf2::Quaternion q(t.transform.rotation.x,t.transform.rotation.y,t.transform.rotation.z,t.transform.rotation.w);
-//    tf2::Matrix3x3 m(q);
-//    double roll, pitch, yaw;
-//    m.getRPY(roll, pitch, yaw);
-//    double x = t.transform.translation.x;
-//    double y = t.transform.translation.y;
-//    double z = t.transform.translation.z;
-//    RobotPose *robot_pose = new RobotPose(x, y, z, roll, pitch, yaw);
-//    return robot_name;
-//}
+        std::vector<Point> map_points;
+        for (geometry_msgs::msg::Point32 point: mapData.points) {
+            map_points.push_back(Point(point.x, point.y));
+        }
+        Polygon map = Polygon(map_points);
 
+        std::vector<Point> gates;
+        for (geometry_msgs::msg::Pose gate_pose: gateData.poses) {
+            gates.push_back(Point(gate_pose.position.x, gate_pose.position.y));
+        }
 
+        environment::Environment env(map, obstacles, robots, gates[0]);
+        double offset = 0.5;
+        std::vector<Polygon> polygons;
+        std::vector<std::vector<Polygon>> pols = enlargeAndJoinObstacles(env.getObstacles(), offset);
+        polygons = pols[1];
+
+        vgraph::VGraph visGraph = vgraph::VGraph();
+        for (const roadmap_msgs::msg::NodeMsg &node_msg: roadmapData.nodes) {
+            visGraph.addNode(vgraph::Node(Point(node_msg.x, node_msg.y)));
+        }
+        for (const roadmap_msgs::msg::EdgeMsg &edge_msg: roadmapData.edges) {
+            visGraph.addEdge(
+                    vgraph::Edge(Point(edge_msg.node1.x, edge_msg.node1.y), Point(edge_msg.node2.x, edge_msg.node2.y),
+                                 edge_msg.weight));
+        }
+        dubins::Curve ***paths;
+        paths = new dubins::Curve **[robots.size()];
+        std::vector<int> curves_len;
+        for (std::vector<Robot>::size_type r = 0; r < robots.size(); r++) {
+            Robot robot = robots[r];
+            std::vector<Point> path = visGraph.shortestPath(robot.shape, gates[0]);
+            dubins::DubinsPoint **points = new dubins::DubinsPoint *[path.size()];
+            points[0] = new dubins::DubinsPoint(path[0].x, path[0].y, 3.14);
+            for (std::vector<Point>::size_type i = 1; i < path.size() - 1; i++) {
+                points[i] = new dubins::DubinsPoint(path[i].x, path[i].y);
+            }
+            points[path.size() - 1] = new dubins::DubinsPoint(path[path.size() - 1].x, path[path.size() - 1].y);
+            curves_len.push_back(path.size() - 1);
+            dubins::Dubins dubins = dubins::Dubins(0.7, 0.005);  // TODO: max curvature and discretization.
+            dubins::Curve **curves = dubins.multipointShortestPath(points, path.size(), polygons, env.getMap());
+            paths[r] = curves;
+            if (curves == nullptr) {
+                RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Path not found!");
+            } else {
+                RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Path computed!");
+            }
+        // TODO
+//        publishPaths(paths, curves_len, robots, node);
+        }
+    }
+}
 // Define the subscriber callback function
 void bordersCallback(const geometry_msgs::msg::Polygon::SharedPtr msg) {
     mapData = *msg;
     mapReceived = true;
-    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Borders OK!");
 }
 
 void obstaclesCallback(const obstacles_msgs::msg::ObstacleArrayMsg::SharedPtr msg) {
     obstaclesData = *msg;
     obstaclesPositionsReceived = true;
-    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Obstacles OK!");
 }
 
-void gateCallback(const geometry_msgs::msg::Pose::SharedPtr msg) {
+void gateCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg) {
     gateData = *msg;
     gateReceived = true;
-    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Borders OK!");
 }
-
-//void shelfino1Callback(const your_msgs::RobotPositionMsg::SharedPtr msg) {
-//    shelfino1Data = *msg;
-//    shelfino1PositionsReceived = true;
-//}
-
-//void shelfino2Callback(const your_msgs::RobotPositionMsg::SharedPtr msg) {
-//    shelfino2Data = *msg;
-//    shelfino2PositionsReceived = true;
-//}
-
-//void shelfino3Callback(const your_msgs::RobotPositionMsg::SharedPtr msg) {
-//    shelfino3Data = *msg;
-//    shelfino3PositionsReceived = true;
-//}
 
 int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
-    auto node = rclcpp::Node::make_shared("subscriber_node");
-
+    auto node = rclcpp::Node::make_shared("planner_node");
     // Create the subscriber
-    auto map_subscriber = node->create_subscription<geometry_msgs::msg::Polygon>("/borders", 10, bordersCallback); // Adjust the queue size (10) as needed
-    auto obstacles_subscriber = node->create_subscription<obstacles_msgs::msg::ObstacleArrayMsg>("/obstacles", 10, obstaclesCallback); // Adjust the queue size (10) as needed
-    auto gate_subscriber = node->create_subscription<geometry_msgs::msg::Pose>("/gate_position", 10, gateCallback); // Adjust the queue size (10) as needed
-//    auto shelfino1_subscriber = node->create_subscription<your_msgs::RobotPositionMsg>("/shelfino1_position", 10, shelfino1Callback); // Adjust the queue size (10) as needed
-//    auto shelfino2_subscriber = node->create_subscription<your_msgs::RobotPositionMsg>("/shelfino2_position", 10, shelfino2Callback); // Adjust the queue size (10) as needed
-//    auto shelfino3_subscriber = node->create_subscription<your_msgs::RobotPositionMsg>("/shelfino3_position", 10, shelfino3Callback); // Adjust the queue size (10) as needed
-
-    // Loop to wait until all required data is received
-    while (!(mapReceived && gateReceived && obstaclesPositionsReceived)) {
-        ros::spinOnce();
-        ros::Duration(0.1).sleep(); // Sleep for a short duration
-    }
-
-    // Here now I should have all the data I need to start the algorithm.
-//    std::vector<Polygon> polygons, polygonsForVisgraph, obstacles;
-//    std::vector<std::vector<Polygon>> pols = enlargeAndJoinObstacles(obstacles, offset);
-//    polygonsForVisgraph = pols[0];
-//    polygons = pols[1];
-//    std::vector<Point> mapPoints = enlarge(mapPoints, -1);
-//    Polygon map = Polygon({mapPoints});
-//    polygons.push_back(map)
-//
-//    vgraph::VGraph visGraph = vgraph::VGraph({shelfino1, shelfino2, shelfino3}, polygonsForVisgraph, gate);
-//
-//    // publish visGraph.
-//    roadmap_publisher = node->create_publisher<roadmap_msgs::msg::Roadmap>("roadmap", 10);
-//    // Convert the VGraph to a Roadmap message
-//    roadmap_msgs::msg::Roadmap roadmap_msg;
-//    for (const auto& node : vgraph.nodes) {
-//        // Convert VGraph Node to Roadmap Node
-//        roadmap_msgs::msg::Node roadmap_node;
-//        roadmap_node.x = node.position.x;
-//        roadmap_node.y = node.position.y;
-//        roadmap_msg.nodes.push_back(roadmap_node);
-//    }
-//    for (const auto& edge : vgraph.edges) {
-//        // Convert VGraph Edge to Roadmap Edge
-//        your_package_name::msg::Edge roadmap_edge;
-//        roadmap_msgs::msg::Node roadmap_node1;
-//        roadmap_node1.x = edge.start.position.x;
-//        roadmap_node1.y = edge.start.position.y;
-//
-//        roadmap_msgs::msg::Node roadmap_node2;
-//        roadmap_node2.x = edge.start.position.x;
-//        roadmap_node2.y = edge.start.position.y;
-//
-//        roadmap_edge.node1 = roadmap_node1;
-//        roadmap_edge.node2 = roadmap_node2;
-//        roadmap_edge.weight = edge.weight;
-//        roadmap_msg.edges.push_back(roadmap_edge);
-//    }
-//
-//// Publish the Roadmap message
-//    roadmap_publisher->publish(roadmap_msg);
-
+    rclcpp::QoS roadmap_qos = rclcpp::QoS(rclcpp::KeepLast(10)).best_effort();
+    auto roadmap_subscriber = node->create_subscription<roadmap_msgs::msg::RoadmapMsg>("/roadmap", roadmap_qos, roadmapCallback); // Adjust the queue size (10) as needed
+    rclcpp::QoS map_qos = rclcpp::QoS(rclcpp::KeepLast(10)).best_effort();
+    auto map_subscriber = node->create_subscription<geometry_msgs::msg::Polygon>("/map_borders", map_qos, bordersCallback); // Adjust the queue size (10) as needed
+    rclcpp::QoS obs_qos = rclcpp::QoS(rclcpp::KeepLast(10)).best_effort();
+    auto obstacles_subscriber = node->create_subscription<obstacles_msgs::msg::ObstacleArrayMsg>("/obstacles", obs_qos, obstaclesCallback); // Adjust the queue size (10) as needed
+    rclcpp::QoS gate_qos = rclcpp::QoS(rclcpp::KeepLast(10)).best_effort();
+    auto gate_subscriber = node->create_subscription<geometry_msgs::msg::PoseArray>("/gate_position", gate_qos, gateCallback); // Adjust the queue size (10) as needed
+    rclcpp::spin(node);
+    rclcpp::shutdown();
     return 0;
 }

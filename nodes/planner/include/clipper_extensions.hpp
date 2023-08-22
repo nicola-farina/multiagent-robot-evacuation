@@ -9,8 +9,6 @@
 #include "models.hpp"
 #include <vector>
 
-void printSolution(std::vector<ClipperLib::IntPoint> startingPoints, ClipperLib::Paths solution);
-
 std::vector<Point> enlarge(std::vector<Point> points, double offset);
 
 std::vector<std::vector<Polygon>> enlargeAndJoinObstacles(std::vector<Polygon> polygonsList, double offset);

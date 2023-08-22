@@ -30,7 +30,7 @@ struct Polygon {
 
     std::vector<std::vector<Point>> getPolygonEdges() {
         std::vector<std::vector<Point>> edges;
-        for(int i = 0; i < points.size(); i++) {
+        for(std::vector<Point>::size_type i = 0; i < points.size(); i++) {
             std::vector<Point> edge;
             edge.push_back(points[i]);
             edge.push_back(points[(i + 1) % points.size()]);

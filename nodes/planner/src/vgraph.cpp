@@ -8,139 +8,9 @@
 namespace vgraph {
 
     // Define the constructor
-    VGraph::VGraph(std::vector<Robot> robots, std::vector<Polygon> obstacles, Point gate) {
+    VGraph::VGraph() {
         nodes = std::vector<Node>();
         edges = std::vector<Edge>();
-
-        for(Robot robot : robots) {
-            Node node = Node(robot.shape);
-            nodes.push_back(node);
-        }
-
-        Node node = Node(gate);
-        nodes.push_back(node);
-
-        for(Polygon obstacle : obstacles) {
-            for(Point point : obstacle.points) {
-                Node node = Node(point);
-                nodes.push_back(node);
-            }
-        }
-
-//        std::cout << "Nodes size: " << nodes.size() << std::endl;
-//        exit(0);
-
-        // Compute the edges between robots
-        for (int i = 0; i < robots.size(); i++) {
-            for (int j = 0; j < robots.size(); j++) {
-                if (i < j) {
-                    Robot robot = robots[i];
-                    Robot otherRobot = robots[j];
-                    if (!intersectsObstacle(robot.shape, otherRobot.shape, obstacles)) {
-                        double distance = sqrt(pow(robot.shape.x - otherRobot.shape.x, 2) +
-                                               pow(robot.shape.y - otherRobot.shape.y, 2));
-                        Edge edge = Edge(robot.shape, otherRobot.shape, distance);
-                        edges.push_back(edge);
-                        // push in the adj map the robot shape and the other robot shape
-                        AdjacentNode adj_node = AdjacentNode(otherRobot.shape, distance);
-                        adj[robot.shape].push_back(adj_node);
-
-                        adj_node = AdjacentNode(robot.shape, distance);
-                        adj[otherRobot.shape].push_back(adj_node);
-                    }
-                }
-            }
-        }
-
-        // Compute the edges between robots and gate
-        for(Robot robot: robots) {
-            if(!intersectsObstacle(robot.shape, gate, obstacles)) {
-                double distance = sqrt(pow(robot.shape.x - gate.x, 2) + pow(robot.shape.y - gate.y, 2));
-                Edge edge = Edge(robot.shape, gate, distance);
-                edges.push_back(edge);
-                // push in the adj map the robot shape and the gate
-                AdjacentNode adj_node = AdjacentNode(gate, distance);
-                adj[robot.shape].push_back(adj_node);
-                adj_node = AdjacentNode(robot.shape, distance);
-                adj[gate].push_back(adj_node);
-            }
-        }
-
-        // Compute the edges between robots and obstacles
-        for(Robot robot : robots) {
-            for(Polygon obstacle : obstacles) {
-                for(Point point : obstacle.points) {
-//                    std::cout << "Robot: " << robot.shape.x << " " << robot.shape.y << std::endl;
-//                    std::cout << "Point: " << point.x << " " << point.y << std::endl;
-                    if(!intersectsObstacle(robot.shape, point, obstacles)) {
-                        double distance = sqrt(pow(robot.shape.x - point.x, 2) + pow(robot.shape.y - point.y, 2));
-                        Edge edge = Edge(robot.shape, point, distance);
-                        edges.push_back(edge);
-                        // push in the adj map the robot shape and the point
-                        AdjacentNode adj_node = AdjacentNode(point, distance);
-                        adj[robot.shape].push_back(adj_node);
-                        adj_node = AdjacentNode(robot.shape, distance);
-                        adj[point].push_back(adj_node);
-                    }
-                }
-            }
-        }
-
-        // Compute the edges of each obstacle
-        for(Polygon obstacle: obstacles) {
-            for (std::vector<Point> points : obstacle.getPolygonEdges()) {
-                Point point = points[0];
-                Point otherPoint = points[1];
-                double distance = sqrt(pow(point.x - otherPoint.x, 2) + pow(point.y - otherPoint.y, 2));
-                Edge edge = Edge(point, otherPoint, distance);
-                edges.push_back(edge);
-                // push in the adj map the point and the other point
-                AdjacentNode adj_node = AdjacentNode(otherPoint, distance);
-                adj[point].push_back(adj_node);
-                adj_node = AdjacentNode(point, distance);
-                adj[otherPoint].push_back(adj_node);
-            }
-        }
-
-        // Compute the edges between obstacles
-        for(int i = 0; i<obstacles.size(); i++) {
-            for (int j = 0; j<obstacles.size(); j++) {
-                if(i<j) {
-                    Polygon obstacle = obstacles[i];
-                    Polygon otherObstacle = obstacles[j];
-                    for(Point point : obstacle.points) {
-                        for(Point otherPoint : otherObstacle.points) {
-                            if(!intersectsObstacle(point, otherPoint, obstacles)) {
-                                double distance = sqrt(pow(point.x - otherPoint.x, 2) + pow(point.y - otherPoint.y, 2));
-                                Edge edge = Edge(point, otherPoint, distance);
-                                edges.push_back(edge);
-                                // push in the adj map the point and the other point
-                                AdjacentNode adj_node = AdjacentNode(otherPoint, distance);
-                                adj[point].push_back(adj_node);
-                                adj_node = AdjacentNode(point, distance);
-                                adj[otherPoint].push_back(adj_node);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Compute the edges between gate and obstacles
-        for (Polygon obstacle : obstacles) {
-            for (Point point : obstacle.points) {
-                if (!intersectsObstacle(point, gate, obstacles)) {
-                    double distance = sqrt(pow(point.x - gate.x, 2) + pow(point.y - gate.y, 2));
-                    Edge edge = Edge(point, gate, distance);
-                    edges.push_back(edge);
-                    // push in the adj map the point and the gate
-                    AdjacentNode adj_node = AdjacentNode(gate, distance);
-                    adj[point].push_back(adj_node);
-                    adj_node = AdjacentNode(point, distance);
-                    adj[gate].push_back(adj_node);
-                }
-            }
-        }
     }
 
     void VGraph::addNode(Node node) {
@@ -153,6 +23,10 @@ namespace vgraph {
 
     std::vector<Edge> VGraph::getEdges() {
         return edges;
+    }
+
+    std::vector<Node> VGraph::getNodes() {
+        return nodes;
     }
 
     std::map<Point, std::vector<AdjacentNode>> VGraph::getAdj() {

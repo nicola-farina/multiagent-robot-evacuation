@@ -1,61 +1,8 @@
 #include "clipper_extensions.hpp"
 #include "clipper.hpp"
 #include "models.hpp"
-#include <opencv2/core.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/highgui.hpp>
 #include <iostream>
 #include <vector>
-
-
-/**
- * @brief Print a clipper polygon offsetting solution using OpenCV
- *
- * @param startingPoints Points of the original polygon
- * @param solution Solution given by clipper
- */
-void printSolution(std::vector<ClipperLib::IntPoint> startingPoints, ClipperLib::Paths solution)
-{
-    // Create opencv plotting tool
-    cv::Mat plot(1500, 1500, CV_8UC3, cv::Scalar(255, 255, 255));
-
-
-
-    // Get the initial path
-    ClipperLib::Path subj;
-    for (int i = 0; i < startingPoints.size(); i++)
-    {
-        subj.push_back(startingPoints[i]);
-    }
-    // Draw the initial path
-    cv::line(plot, cv::Point2f(subj.at(subj.size() - 1).X, subj.at(subj.size() - 1).Y), cv::Point2f(subj.at(0).X, subj.at(0).Y), cv::Scalar(255, 0, 0), 1);
-    for (unsigned int j = 1; j < subj.size(); j++)
-    {
-        cv::line(plot, cv::Point2f(subj.at(j - 1).X, subj.at(j - 1).Y), cv::Point2f(subj.at(j).X, subj.at(j).Y), cv::Scalar(255, 0, 0), 1);
-    }
-
-    // Draw the solution
-    for (unsigned int i = 0; i < solution.size(); i++)
-    {
-        ClipperLib::Path path = solution.at(i);
-        cv::line(plot, cv::Point2f(path.at(path.size() - 1).X, path.at(path.size() - 1).Y), cv::Point2f(path.at(0).X, path.at(0).Y), cv::Scalar(255, 255, 0), 2);
-        for (unsigned int j = 1; j < path.size(); j++)
-        {
-            std::cout << path.at(j - 1).X << " , " << path.at(j - 1).Y << " - " << path.at(j).X << " , " << path.at(j).Y << "\n";
-            cv::line(plot, cv::Point2f(path.at(j - 1).X, path.at(j - 1).Y), cv::Point2f(path.at(j).X, path.at(j).Y), cv::Scalar(255, 255, 0), 2);
-        }
-    }
-//    cv::flip(plot, plot, 0);
-//    cv::namedWindow("Clipper", cv::WINDOW_NORMAL);
-//    int desiredWidth = 1500;
-//    int desiredHeight = 800;
-//    cv::Mat resizedPlot;
-//    cv::resize(plot, resizedPlot, cv::Size(desiredWidth, desiredHeight));
-    cv::imshow("Clipper", plot);
-    cv::waitKey(0);
-}
-
-
 
 /*
 * @brief Clipper Polygon Offsetting helper function
@@ -69,7 +16,7 @@ std::vector<Point> enlarge(std::vector<Point> points, double offset)
 {
     ClipperLib::Path subj;
     ClipperLib::Paths solution;
-    for (int i = 0; i < points.size(); i++)
+    for (std::vector<Point>::size_type i = 0; i < points.size(); i++)
     {
         subj << ClipperLib::IntPoint(points[i].x*1000, points[i].y*1000);
     }
@@ -147,7 +94,7 @@ std::vector<std::vector<Polygon>> enlargeAndJoinObstacles(std::vector<Polygon> p
     std::vector<Polygon> smallPolygons;
 
     //We convert each polygon to a "slightly bigger" and a "bigger" version and then we push then into different vectors
-    for (int i = 0; i < polygonsList.size(); i++){
+    for (std::vector<Polygon>::size_type i = 0; i < polygonsList.size(); i++){
         std::vector<Polygon> results;
         results = enlargeObstaclesWithTwoOffsets(polygonsList[i], offset);
         bigPolygons.push_back(results[0]);

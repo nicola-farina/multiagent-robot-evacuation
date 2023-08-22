@@ -103,29 +103,22 @@ void roadmapGeneration() {
     }
 
     RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Gate converted successfully!");
-
-    // Here now I should have all the data I need to start the algorithm.
-    double offset = 0.5;
-    std::vector<Polygon> polygons, polygonsForVisgraph;
-    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "1");
-    std::vector<std::vector<Polygon>> pols = enlargeAndJoinObstacles(obstacles, offset);
-    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "2");
-    polygonsForVisgraph = pols[0];
-    polygons = pols[1];
-    std::vector<Point> mapPoints = enlarge(map_points, -1);
-    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "3");
-    Polygon mapArena = Polygon(mapPoints);
-    polygons.push_back(map);
-    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "4");
     Robot shelfino1 = Robot(Point{0, 0}, 0);
     Robot shelfino2 = Robot(Point{-1, 0}, 0);
     Robot shelfino3 = Robot(Point{1, 0}, 0);
-    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "5");
+    std::vector<Robot> robots = {shelfino1, shelfino2, shelfino3};
+    // Here now I should have all the data I need to start the algorithm.
+    environment::Environment env(map, obstacles, robots, gates[0]);
+    double offset = 0.5;
+    std::vector<Polygon> polygons, polygonsForVisgraph;
+    std::vector<std::vector<Polygon>> pols = enlargeAndJoinObstacles(env.getObstacles(), offset);
+    polygonsForVisgraph = pols[0];
+    polygons = pols[1];
+    std::vector<Point> mapPoints = enlarge(map_points, -1);
+    polygons.push_back(map);
     vgraph::VGraph visGraph = vgraph::VGraph({shelfino1, shelfino2, shelfino3}, polygonsForVisgraph, gates[0]);
-    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "6");
     // publish visGraph.
     auto roadmap_publisher = node->create_publisher<roadmap_msgs::msg::RoadmapMsg>("roadmap", 10);
-    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "7");
     // Convert the VGraph to a Roadmap message
     roadmap_msgs::msg::RoadmapMsg roadmap_msg;
     for (const auto& node_graph : visGraph.getNodes()) {
@@ -135,7 +128,6 @@ void roadmapGeneration() {
         roadmap_node.y = node_graph.position.y;
         roadmap_msg.nodes.push_back(roadmap_node);
     }
-    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "8");
     for (const auto& edge : visGraph.getEdges()) {
         // Convert VGraph Edge to Roadmap Edge
         roadmap_msgs::msg::EdgeMsg roadmap_edge;
@@ -152,7 +144,6 @@ void roadmapGeneration() {
         roadmap_edge.weight = edge.weight;
         roadmap_msg.edges.push_back(roadmap_edge);
     }
-    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "9");
 
 // Publish the Roadmap message
     while(1) {

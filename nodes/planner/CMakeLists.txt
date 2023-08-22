@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(.)
+project(planner)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -16,15 +16,17 @@ include_directories(
         include
 )
 
-add_executable(.
+add_executable(planner
         src/planner.cpp
         src/clipper.cpp
         src/clipper_extensions.cpp
         src/models.cpp
         src/vgraph.cpp
+        src/dubins.cpp
+        src/utils.cpp
 )
 
-ament_target_dependencies(roadmap_generation
+ament_target_dependencies(planner
   rclcpp
   geometry_msgs
   obstacles_msgs
@@ -33,7 +35,7 @@ ament_target_dependencies(roadmap_generation
 
 
 # Install the executable
-install(TARGETS tentative
+install(TARGETS planner
   DESTINATION lib/${PROJECT_NAME}
 )
 

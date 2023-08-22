@@ -35,13 +35,15 @@ namespace vgraph {
 
     class VGraph {
     public:
-        VGraph(std::vector<Robot> robots, std::vector<Polygon> obstacles, Point gate);
+        VGraph();
 
         void addNode(Node node);
 
         void addEdge(Edge edge);
 
         std::vector<Edge> getEdges();
+
+        std::vector<Node> getNodes();
 
         std::map<Point, std::vector<AdjacentNode>> getAdj();
 
