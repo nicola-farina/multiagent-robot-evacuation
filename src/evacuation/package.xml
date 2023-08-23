@@ -3,17 +3,11 @@
 <package format="3">
   <name>evacuation</name>
   <version>0.0.0</version>
-  <description>Roadmap generation and publication</description>
-  <maintainer email="luca.zardini@studenti.unitn.it">root</maintainer>
+  <description>TODO: Package description</description>
+  <maintainer email="nicola@todo.todo">nicola</maintainer>
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
-
-  <depend>rclcpp</depend>
-  <depend>geometry_msgs</depend>
-  <depend>obstacles_msgs</depend>
-  <depend>nav_msgs</depend>
-  <depend>nav2_msgs</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
