@@ -151,6 +151,23 @@ public:
         }
     }
 
+    void resultCallback(const GoalHandle::WrappedResult & result){
+        switch (result.code) {
+            case rclcpp_action::ResultCode::SUCCEEDED:
+                RCLCPP_INFO(get_logger(), "Success!!!");
+                break;
+            case rclcpp_action::ResultCode::ABORTED:
+                RCLCPP_ERROR(get_logger(), "Goal was aborted");
+                return;
+            case rclcpp_action::ResultCode::CANCELED:
+                RCLCPP_ERROR(get_logger(), "Goal was canceled");
+                return;
+            default:
+                RCLCPP_ERROR(get_logger(), "Unknown result code");
+                return;
+        }
+    }
+
     void planEvacuation() {
         RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "All data retrieved!");
 
@@ -224,6 +241,8 @@ public:
         dubins::Curve ***paths;
         paths = new dubins::Curve **[robots.size()];
         std::vector<int> curves_len;
+        std::vector<std::vector<Point>> finalPoints;
+        std::vector<Point> robotPoints;
         for (std::vector<Robot>::size_type r = 0; r < robots.size(); r++) {
             Robot robot = robots[r];
             std::vector<Point> path = visGraph.shortestPath(robot.shape, gates[0]);
@@ -242,11 +261,64 @@ public:
                 RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Path not found!");
             } else {
                 RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Path computed!");
+                for (int i = 0; i < curves_len[r]; i ++){
+                    std::vector<Point> curvePoint = getPointsFromCurve(curves[r]);
+                    robotPoints.insert(robotPoints.end(), curvePoint.begin(), curvePoint.end());
+                }
             }
+            finalPoints.push_back(robotPoints);
+            robotPoints.clear();
+
             // TODO
 //        publishPaths(paths, curves_len, robots, node);
         }
+        RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Publishing paths to shelfino2/follow_path...");
+        rclcpp_action::Client<FollowPath>::SharedPtr client_ptrR1 = rclcpp_action::create_client<FollowPath>(this,"shelfino2/follow_path");
+        if (!client_ptrR1->wait_for_action_server()) {
+            RCLCPP_ERROR(this->get_logger(), "Action server not available after waiting");
+            rclcpp::shutdown();
+        }
+        RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Aoooo");
+        nav_msgs::msg::Path path;
+        path.header.stamp = this->get_clock()->now();
+        path.header.frame_id = "map";
+        std::vector<geometry_msgs::msg::PoseStamped> posesTemp;
+        geometry_msgs::msg::Pose poseTemp;
+        geometry_msgs::msg::Point positionTemp;
+        geometry_msgs::msg::Quaternion quaternionTemp;
+        geometry_msgs::msg::PoseStamped poseStampedTemp;
+        for(int i=0; i < 100; i++){
+            positionTemp.x = 0;
+            positionTemp.y = -3 + (i+1)*0.07;
+            positionTemp.z = 0;
+
+            quaternionTemp.x = 0;
+            quaternionTemp.y = 0;
+            quaternionTemp.z = 0;
+            quaternionTemp.w = 0;
+
+            poseTemp.position = positionTemp;
+            poseTemp.orientation = quaternionTemp;
+
+            poseStampedTemp.pose = poseTemp;
+            poseStampedTemp.header.stamp = this->get_clock()->now();
+            poseStampedTemp.header.frame_id = "base_link";
+
+            posesTemp.push_back(poseStampedTemp);
+        }
+        path.poses = posesTemp;
+        RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "UUUU");
+
+        auto goalMsgR1 = FollowPath::Goal();
+        goalMsgR1.path = path;
+        goalMsgR1.controller_id = "FollowPath";
+        RCLCPP_INFO(this->get_logger(), "Sending goal");
+
+        client_ptrR1->async_send_goal(goalMsgR1);
+        RCLCPP_INFO(this->get_logger(), "Goal sent");
     }
+
+
     private:
         void gateCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg) {
             gateData = *msg;
@@ -287,6 +359,61 @@ public:
             //    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "map data: %ld", mapData.points.size());
             //    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "map data: %f", mapData.points[0].x);
             //    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "map data: %f", mapData.points[0].y);
+        }
+
+        Pose circline(double s, double x0, double y0, double th0, double k){
+            Pose p;
+            p.x = x0 + s * dubins::sinc(k * s / 2.0) * cos(th0 + k * s / 2);
+            p.y = y0 + s * dubins::sinc(k * s / 2.0) * sin(th0 + k * s / 2);
+            p.th = dubins::mod2pi(th0 + k * s);
+            return p;
+        }
+
+        std::vector<Point> getPointsFromArc(dubins::Arc *arc, int npts){
+
+            std::vector<Point> points;
+            Point point;
+            Pose pose;
+
+            double k = arc->k;
+            Pose p = circline(arc->L, arc->x0, arc->y0, arc->th0, arc->k); // TODO: check if this is correct
+            double true_x = p.x;
+            double true_y = p.y;
+
+            Pose temp = circline(arc->L, arc->x0, arc->y0, arc->th0, arc->k);
+
+            double epsilon = 0.01;
+
+            if((abs(temp.x - true_x)>epsilon) || (abs(temp.y - true_y) > epsilon)){
+                arc->k = -k;
+            }
+
+            for (int j = 0; j < npts; j++){
+
+                double s = arc->L/npts * j;
+
+                pose = circline(s, arc->x0, arc->y0, arc->th0, arc->k);
+
+                point.x = pose.x;
+                point.y = pose.y;
+
+                points.push_back(point);
+            }
+
+            return points;
+        }
+
+        std::vector<Point> getPointsFromCurve(dubins::Curve *curve){
+
+            std::vector<Point> line1 = getPointsFromArc(curve->a1, 10);
+            std::vector<Point> line2 = getPointsFromArc(curve->a2, 30);
+            std::vector<Point> line3 = getPointsFromArc(curve->a3, 10);
+
+            std::vector<Point> totLine;
+            totLine.insert(totLine.end(), line1.begin(), line1.end());;
+            totLine.insert(totLine.end(), line2.begin(), line2.end());;
+            totLine.insert(totLine.end(), line3.begin(), line3.end());;
+            return totLine;
         }
 
         double offset = 0.5;

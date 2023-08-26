@@ -48,6 +48,15 @@ struct Robot {
     Robot(Point shape, double radius) : shape(shape), radius(radius) {}
 };
 
+struct Pose {
+    double x;
+    double y;
+    double th;
+
+    Pose() {}
+    Pose(double x, double y, double th) : x(x), y(y), th(th) {}
+};
+
 
 namespace environment
 {
