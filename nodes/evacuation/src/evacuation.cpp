@@ -112,6 +112,11 @@ public:
         // //TOPIC SUBSCRIPTION TO READ OBSTACLES
         obstaclesSubscriber_ = this->create_subscription<obstacles_msgs::msg::ObstacleArrayMsg>(
                 "obstacles", qos, std::bind(&MinimalPublisher::obstaclesCallback, this, _1));
+
+        publisherR1_ = this->create_publisher<nav_msgs::msg::Path>("shelfino1/plan", 10);
+        publisherR2_ = this->create_publisher<nav_msgs::msg::Path>("shelfino2/plan", 10);
+        publisherR3_ = this->create_publisher<nav_msgs::msg::Path>("shelfino3/plan", 10);
+
         if (sim) {
             std::shared_ptr<tf2_ros::TransformListener> tf_listener{nullptr};
             std::unique_ptr<tf2_ros::Buffer> tf_buffer;
@@ -238,8 +243,6 @@ public:
         std::vector<Point> mapPoints = enlarge(map_points, -1);
         polygonsForDubins.push_back(map);
         vgraph::VGraph visGraph = vgraph::VGraph({shelfino1, shelfino2, shelfino3}, polygonsForVisgraph, gates[0]);
-        dubins::Curve ***paths;
-        paths = new dubins::Curve **[robots.size()];
         std::vector<int> curves_len;
         std::vector<std::vector<Point>> finalPoints;
         std::vector<Point> robotPoints;
@@ -247,7 +250,7 @@ public:
             Robot robot = robots[r];
             std::vector<Point> path = visGraph.shortestPath(robot.shape, gates[0]);
             dubins::DubinsPoint **points = new dubins::DubinsPoint *[path.size()];
-            points[0] = new dubins::DubinsPoint(path[0].x, path[0].y, 3.14);
+            points[0] = new dubins::DubinsPoint(path[0].x, path[0].y, robot.radius);
             for (std::vector<Point>::size_type i = 1; i < path.size() - 1; i++) {
                 points[i] = new dubins::DubinsPoint(path[i].x, path[i].y);
             }
@@ -256,41 +259,51 @@ public:
             dubins::Dubins dubins = dubins::Dubins(radius, 0.005);  // TODO: discretization.
             dubins::Curve **curves = dubins.multipointShortestPath(points, path.size(), polygonsForDubins,
                                                                    env.getMap());
-            paths[r] = curves;
             if (curves == nullptr) {
                 RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Path not found!");
             } else {
                 RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Path computed!");
-                for (int i = 0; i < curves_len[r]; i ++){
-                    std::vector<Point> curvePoint = getPointsFromCurve(curves[r]);
+                for (int i = 0; i < curves_len[r]; i++){
+                    std::vector<Point> curvePoint = getPointsFromCurve(curves[i]);
                     robotPoints.insert(robotPoints.end(), curvePoint.begin(), curvePoint.end());
                 }
             }
             finalPoints.push_back(robotPoints);
             robotPoints.clear();
-
-            // TODO
-//        publishPaths(paths, curves_len, robots, node);
         }
         RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Publishing paths to shelfino2/follow_path...");
-        rclcpp_action::Client<FollowPath>::SharedPtr client_ptrR1 = rclcpp_action::create_client<FollowPath>(this,"shelfino2/follow_path");
+        rclcpp_action::Client<FollowPath>::SharedPtr client_ptrR1 = rclcpp_action::create_client<FollowPath>(this,"shelfino1/follow_path");
+        rclcpp_action::Client<FollowPath>::SharedPtr client_ptrR2 = rclcpp_action::create_client<FollowPath>(this,"shelfino2/follow_path");
+        rclcpp_action::Client<FollowPath>::SharedPtr client_ptrR3 = rclcpp_action::create_client<FollowPath>(this,"shelfino3/follow_path");
         if (!client_ptrR1->wait_for_action_server()) {
             RCLCPP_ERROR(this->get_logger(), "Action server not available after waiting");
             rclcpp::shutdown();
         }
+        if (!client_ptrR2->wait_for_action_server()) {
+            RCLCPP_ERROR(this->get_logger(), "Action server not available after waiting");
+            rclcpp::shutdown();
+        }
+        if (!client_ptrR3->wait_for_action_server()) {
+            RCLCPP_ERROR(this->get_logger(), "Action server not available after waiting");
+            rclcpp::shutdown();
+        }
         RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Aoooo");
-        nav_msgs::msg::Path path;
-        path.header.stamp = this->get_clock()->now();
-        path.header.frame_id = "map";
+        nav_msgs::msg::Path path1;
+//        path1.header.stamp = this->get_clock()->now();
+        path1.header.frame_id = "map";
         std::vector<geometry_msgs::msg::PoseStamped> posesTemp;
         geometry_msgs::msg::Pose poseTemp;
         geometry_msgs::msg::Point positionTemp;
         geometry_msgs::msg::Quaternion quaternionTemp;
         geometry_msgs::msg::PoseStamped poseStampedTemp;
-        for(int i=0; i < 100; i++){
-            positionTemp.x = 0;
-            positionTemp.y = -3 + (i+1)*0.07;
+//        for(std::vector<Robot>::size_type i=0; i < finalPoints[0].size(); i++){
+        for(std::vector<Robot>::size_type i=0; i < 10; i++){
+//            Point point = finalPoints[0][i];
+//            positionTemp.x = point.x;
+//            positionTemp.y = point.y;
             positionTemp.z = 0;
+            positionTemp.x = -4 + (i+1)*0.5;
+            positionTemp.y = -3;
 
             quaternionTemp.x = 0;
             quaternionTemp.y = 0;
@@ -301,21 +314,121 @@ public:
             poseTemp.orientation = quaternionTemp;
 
             poseStampedTemp.pose = poseTemp;
-            poseStampedTemp.header.stamp = this->get_clock()->now();
+//            poseStampedTemp.header.stamp = this->get_clock()->now();
             poseStampedTemp.header.frame_id = "base_link";
 
             posesTemp.push_back(poseStampedTemp);
         }
-        path.poses = posesTemp;
+
+
+        path1.poses = posesTemp;
         RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "UUUU");
 
+//        publisherR1_->publish(path1);
+//        sleep(5);
+
+        nav_msgs::msg::Path path2;
+        std::vector<geometry_msgs::msg::PoseStamped> posesTemp2;
+        geometry_msgs::msg::Pose poseTemp2;
+        geometry_msgs::msg::Point positionTemp2;
+        geometry_msgs::msg::Quaternion quaternionTemp2;
+        geometry_msgs::msg::PoseStamped poseStampedTemp2;
+//        path2.header.stamp = this->get_clock()->now();
+        path2.header.frame_id = "map";
+//        for(std::vector<Robot>::size_type i=0; i < finalPoints[1].size(); i++){
+        for(std::vector<Robot>::size_type i=0; i < 10; i++){
+//            Point point = finalPoints[1][i];
+//            positionTemp2.x = point.x;
+//            positionTemp2.y = point.y;
+            positionTemp2.z = 0;
+            positionTemp2.x = 0 + (i+1)*0.5;
+            positionTemp2.y = -3;
+
+            quaternionTemp2.x = 0;
+            quaternionTemp2.y = 0;
+            quaternionTemp2.z = 0;
+            quaternionTemp2.w = 0;
+
+            poseTemp2.position = positionTemp2;
+            poseTemp2.orientation = quaternionTemp2;
+
+            poseStampedTemp2.pose = poseTemp2;
+//            poseStampedTemp.header.stamp = this->get_clock()->now();
+            poseStampedTemp2.header.frame_id = "base_link";
+
+            posesTemp2.push_back(poseStampedTemp2);
+        }
+
+
+        path2.poses = posesTemp2;
+        RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "UUUU");
+
+//        publisherR2_->publish(path2);
+//        sleep(5);
+
+        nav_msgs::msg::Path path3;
+        std::vector<geometry_msgs::msg::PoseStamped> posesTemp3;
+        geometry_msgs::msg::Pose poseTemp3;
+        geometry_msgs::msg::Point positionTemp3;
+        geometry_msgs::msg::Quaternion quaternionTemp3;
+        geometry_msgs::msg::PoseStamped poseStampedTemp3;
+//        path3.header.stamp = this->get_clock()->now();
+        path3.header.frame_id = "map";
+//        for(std::vector<Robot>::size_type i=0; i < finalPoints[2].size(); i++){
+        for(std::vector<Robot>::size_type i=0; i < 10; i++){
+//            Point point = finalPoints[2][i];
+//            positionTemp3.x = point.x;
+//            positionTemp3.y = point.y;
+            positionTemp3.z = 0;
+            positionTemp3.x = 4 + (i+1)*0.5;
+            positionTemp3.y = -3;
+
+            quaternionTemp3.x = 0;
+            quaternionTemp3.y = 0;
+            quaternionTemp3.z = 0;
+            quaternionTemp3.w = 0;
+
+            poseTemp3.position = positionTemp3;
+            poseTemp3.orientation = quaternionTemp3;
+
+            poseStampedTemp3.pose = poseTemp3;
+//            poseStampedTemp.header.stamp = this->get_clock()->now();
+            poseStampedTemp3.header.frame_id = "base_link";
+
+            posesTemp3.push_back(poseStampedTemp3);
+        }
+
+
+        path3.poses = posesTemp3;
+        RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "UUUU");
+
+//        publisherR3_->publish(path3);
+//        sleep(5);
+
+
         auto goalMsgR1 = FollowPath::Goal();
-        goalMsgR1.path = path;
+        goalMsgR1.path = path1;
         goalMsgR1.controller_id = "FollowPath";
-        RCLCPP_INFO(this->get_logger(), "Sending goal");
+        RCLCPP_INFO(this->get_logger(), "Sending goal shelfino1");
 
         client_ptrR1->async_send_goal(goalMsgR1);
-        RCLCPP_INFO(this->get_logger(), "Goal sent");
+        RCLCPP_INFO(this->get_logger(), "Goal sent shelfino1");
+
+        auto goalMsgR2 = FollowPath::Goal();
+        goalMsgR2.path = path2;
+        goalMsgR2.controller_id = "FollowPath";
+        RCLCPP_INFO(this->get_logger(), "Sending goal shelfino2");
+
+        client_ptrR2->async_send_goal(goalMsgR2);
+        RCLCPP_INFO(this->get_logger(), "Goal sent shelfino2");
+
+        auto goalMsgR3 = FollowPath::Goal();
+        goalMsgR3.path = path3;
+        goalMsgR3.controller_id = "FollowPath";
+        RCLCPP_INFO(this->get_logger(), "Sending goal shelfino3");
+
+        client_ptrR3->async_send_goal(goalMsgR3);
+        RCLCPP_INFO(this->get_logger(), "Goal sent shelfino3");
     }
 
 
@@ -438,6 +551,11 @@ public:
         geometry_msgs::msg::TransformStamped t1;
         geometry_msgs::msg::TransformStamped t2;
         geometry_msgs::msg::TransformStamped t3;
+
+        rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherR1_;
+        rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherR2_;
+        rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherR3_;
+
 
 //        Robot shelfino1;
 //        Robot shelfino2;
