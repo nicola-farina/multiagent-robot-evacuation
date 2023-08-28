@@ -399,7 +399,7 @@ private:
         std::vector<Point> safePath1;
         std::vector<Point> safePath2;
         std::vector<Point> safePath3;
-        while (!path1_finished && !path2_finished && !path3_finished) {
+        while (!path1_finished || !path2_finished || !path3_finished) {
             // Check if path1 in position path1_index intersects with path2 in position path2_index only if path1 is not finished
             if (!path1_finished) {
                 Point p1 = path1[path1_index];
