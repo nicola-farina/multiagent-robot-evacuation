@@ -153,7 +153,7 @@ public:
         // All data collected, prepare roadmap
         environment::Environment env(map, obstacles, robots, gate);
 
-        dubins::Dubins dubins = dubins::Dubins(robotMaxCurvature, 0.005);  // TODO: discretization
+        dubins::Dubins dubins = dubins::Dubins(2, 0.005);  // TODO: discretization
 
         std::vector<Polygon> polygonsForVisgraph;
         std::vector<Polygon> polygonsForDubins;
