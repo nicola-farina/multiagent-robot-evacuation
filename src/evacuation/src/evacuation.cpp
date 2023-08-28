@@ -40,7 +40,9 @@
 
 #include <cstdlib>
 #include <cmath>
+
 #define _USE_MATH_DEFINES
+
 #include <math.h>
 
 #include "nav_msgs/msg/path.hpp"
@@ -156,7 +158,7 @@ public:
         }
     }
 
-    void resultCallback(const GoalHandle::WrappedResult & result){
+    void resultCallback(const GoalHandle::WrappedResult &result) {
         switch (result.code) {
             case rclcpp_action::ResultCode::SUCCEEDED:
                 RCLCPP_INFO(get_logger(), "Success!!!");
@@ -263,7 +265,7 @@ public:
                 RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Path not found!");
             } else {
                 RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Path computed!");
-                for (int i = 0; i < curves_len[r]; i++){
+                for (int i = 0; i < curves_len[r]; i++) {
                     std::vector<Point> curvePoint = getPointsFromCurve(curves[i]);
                     robotPoints.insert(robotPoints.end(), curvePoint.begin(), curvePoint.end());
                 }
@@ -272,9 +274,12 @@ public:
             robotPoints.clear();
         }
         RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "Publishing paths to shelfino2/follow_path...");
-        rclcpp_action::Client<FollowPath>::SharedPtr client_ptrR1 = rclcpp_action::create_client<FollowPath>(this,"shelfino1/follow_path");
-        rclcpp_action::Client<FollowPath>::SharedPtr client_ptrR2 = rclcpp_action::create_client<FollowPath>(this,"shelfino2/follow_path");
-        rclcpp_action::Client<FollowPath>::SharedPtr client_ptrR3 = rclcpp_action::create_client<FollowPath>(this,"shelfino3/follow_path");
+        rclcpp_action::Client<FollowPath>::SharedPtr client_ptrR1 = rclcpp_action::create_client<FollowPath>(this,
+                                                                                                             "shelfino1/follow_path");
+        rclcpp_action::Client<FollowPath>::SharedPtr client_ptrR2 = rclcpp_action::create_client<FollowPath>(this,
+                                                                                                             "shelfino2/follow_path");
+        rclcpp_action::Client<FollowPath>::SharedPtr client_ptrR3 = rclcpp_action::create_client<FollowPath>(this,
+                                                                                                             "shelfino3/follow_path");
         if (!client_ptrR1->wait_for_action_server()) {
             RCLCPP_ERROR(this->get_logger(), "Action server not available after waiting");
             rclcpp::shutdown();
@@ -297,12 +302,12 @@ public:
         geometry_msgs::msg::Quaternion quaternionTemp;
         geometry_msgs::msg::PoseStamped poseStampedTemp;
 //        for(std::vector<Robot>::size_type i=0; i < finalPoints[0].size(); i++){
-        for(std::vector<Robot>::size_type i=0; i < 10; i++){
+        for (std::vector<Robot>::size_type i = 0; i < 10; i++) {
 //            Point point = finalPoints[0][i];
 //            positionTemp.x = point.x;
 //            positionTemp.y = point.y;
             positionTemp.z = 0;
-            positionTemp.x = -4 + (i+1)*0.5;
+            positionTemp.x = -4 + (i + 1) * 0.5;
             positionTemp.y = -3;
 
             quaternionTemp.x = 0;
@@ -336,12 +341,12 @@ public:
 //        path2.header.stamp = this->get_clock()->now();
         path2.header.frame_id = "map";
 //        for(std::vector<Robot>::size_type i=0; i < finalPoints[1].size(); i++){
-        for(std::vector<Robot>::size_type i=0; i < 10; i++){
+        for (std::vector<Robot>::size_type i = 0; i < 10; i++) {
 //            Point point = finalPoints[1][i];
 //            positionTemp2.x = point.x;
 //            positionTemp2.y = point.y;
             positionTemp2.z = 0;
-            positionTemp2.x = 0 + (i+1)*0.5;
+            positionTemp2.x = 0 + (i + 1) * 0.5;
             positionTemp2.y = -3;
 
             quaternionTemp2.x = 0;
@@ -375,12 +380,12 @@ public:
 //        path3.header.stamp = this->get_clock()->now();
         path3.header.frame_id = "map";
 //        for(std::vector<Robot>::size_type i=0; i < finalPoints[2].size(); i++){
-        for(std::vector<Robot>::size_type i=0; i < 10; i++){
+        for (std::vector<Robot>::size_type i = 0; i < 10; i++) {
 //            Point point = finalPoints[2][i];
 //            positionTemp3.x = point.x;
 //            positionTemp3.y = point.y;
             positionTemp3.z = 0;
-            positionTemp3.x = 4 + (i+1)*0.5;
+            positionTemp3.x = 4 + (i + 1) * 0.5;
             positionTemp3.y = -3;
 
             quaternionTemp3.x = 0;
@@ -432,129 +437,129 @@ public:
     }
 
 
-    private:
-        void gateCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg) {
-            gateData = *msg;
-            gateReceived = true;
-            if (!roadmapGenerated) {
-                if (mapReceived && obstaclesPositionsReceived && gateReceived) {
-                    roadmapGenerated = true;
-                    planEvacuation();
-                }
+private:
+    void gateCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg) {
+        gateData = *msg;
+        gateReceived = true;
+        if (!roadmapGenerated) {
+            if (mapReceived && obstaclesPositionsReceived && gateReceived) {
+                roadmapGenerated = true;
+                planEvacuation();
             }
-
         }
 
-        void obstaclesCallback(const obstacles_msgs::msg::ObstacleArrayMsg::SharedPtr msg) {
-            obstaclesData = *msg;
-            obstaclesPositionsReceived = true;
-            if (!roadmapGenerated) {
-                if (mapReceived && obstaclesPositionsReceived && gateReceived) {
-                    roadmapGenerated = true;
-                    planEvacuation();
-                }
+    }
+
+    void obstaclesCallback(const obstacles_msgs::msg::ObstacleArrayMsg::SharedPtr msg) {
+        obstaclesData = *msg;
+        obstaclesPositionsReceived = true;
+        if (!roadmapGenerated) {
+            if (mapReceived && obstaclesPositionsReceived && gateReceived) {
+                roadmapGenerated = true;
+                planEvacuation();
             }
-            //    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "obstracles data len: %ld", obstaclesData.obstacles.size());
-            //    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "obstracles data len: %ld", obstaclesData.obstacles[0].polygon.points.size());
         }
+        //    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "obstracles data len: %ld", obstaclesData.obstacles.size());
+        //    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "obstracles data len: %ld", obstaclesData.obstacles[0].polygon.points.size());
+    }
 
-        // Define the subscriber callback function
-        void bordersCallback(const geometry_msgs::msg::Polygon::SharedPtr msg) {
-            mapData = *msg;
-            mapReceived = true;
+    // Define the subscriber callback function
+    void bordersCallback(const geometry_msgs::msg::Polygon::SharedPtr msg) {
+        mapData = *msg;
+        mapReceived = true;
 
-            if (!roadmapGenerated) {
-                if (mapReceived && obstaclesPositionsReceived && gateReceived) {
-                    roadmapGenerated = true;
-                    planEvacuation();
-                }
+        if (!roadmapGenerated) {
+            if (mapReceived && obstaclesPositionsReceived && gateReceived) {
+                roadmapGenerated = true;
+                planEvacuation();
             }
-            //    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "map data: %ld", mapData.points.size());
-            //    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "map data: %f", mapData.points[0].x);
-            //    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "map data: %f", mapData.points[0].y);
+        }
+        //    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "map data: %ld", mapData.points.size());
+        //    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "map data: %f", mapData.points[0].x);
+        //    RCLCPP_INFO(rclcpp::get_logger("Subscriber"), "map data: %f", mapData.points[0].y);
+    }
+
+    Pose circline(double s, double x0, double y0, double th0, double k) {
+        Pose p;
+        p.x = x0 + s * dubins::sinc(k * s / 2.0) * cos(th0 + k * s / 2);
+        p.y = y0 + s * dubins::sinc(k * s / 2.0) * sin(th0 + k * s / 2);
+        p.th = dubins::mod2pi(th0 + k * s);
+        return p;
+    }
+
+    std::vector<Point> getPointsFromArc(dubins::Arc *arc, int npts) {
+
+        std::vector<Point> points;
+        Point point;
+        Pose pose;
+
+        double k = arc->k;
+        Pose p = circline(arc->L, arc->x0, arc->y0, arc->th0, arc->k); // TODO: check if this is correct
+        double true_x = p.x;
+        double true_y = p.y;
+
+        Pose temp = circline(arc->L, arc->x0, arc->y0, arc->th0, arc->k);
+
+        double epsilon = 0.01;
+
+        if ((abs(temp.x - true_x) > epsilon) || (abs(temp.y - true_y) > epsilon)) {
+            arc->k = -k;
         }
 
-        Pose circline(double s, double x0, double y0, double th0, double k){
-            Pose p;
-            p.x = x0 + s * dubins::sinc(k * s / 2.0) * cos(th0 + k * s / 2);
-            p.y = y0 + s * dubins::sinc(k * s / 2.0) * sin(th0 + k * s / 2);
-            p.th = dubins::mod2pi(th0 + k * s);
-            return p;
+        for (int j = 0; j < npts; j++) {
+
+            double s = arc->L / npts * j;
+
+            pose = circline(s, arc->x0, arc->y0, arc->th0, arc->k);
+
+            point.x = pose.x;
+            point.y = pose.y;
+
+            points.push_back(point);
         }
 
-        std::vector<Point> getPointsFromArc(dubins::Arc *arc, int npts){
+        return points;
+    }
 
-            std::vector<Point> points;
-            Point point;
-            Pose pose;
+    std::vector<Point> getPointsFromCurve(dubins::Curve *curve) {
 
-            double k = arc->k;
-            Pose p = circline(arc->L, arc->x0, arc->y0, arc->th0, arc->k); // TODO: check if this is correct
-            double true_x = p.x;
-            double true_y = p.y;
+        std::vector<Point> line1 = getPointsFromArc(curve->a1, 10);
+        std::vector<Point> line2 = getPointsFromArc(curve->a2, 30);
+        std::vector<Point> line3 = getPointsFromArc(curve->a3, 10);
 
-            Pose temp = circline(arc->L, arc->x0, arc->y0, arc->th0, arc->k);
+        std::vector<Point> totLine;
+        totLine.insert(totLine.end(), line1.begin(), line1.end());;
+        totLine.insert(totLine.end(), line2.begin(), line2.end());;
+        totLine.insert(totLine.end(), line3.begin(), line3.end());;
+        return totLine;
+    }
 
-            double epsilon = 0.01;
+    double offset = 0.5;
+    rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr gateSubscriber_;
+    rclcpp::Subscription<geometry_msgs::msg::Polygon>::SharedPtr mapSubscriber_;
+    rclcpp::Subscription<obstacles_msgs::msg::ObstacleArrayMsg>::SharedPtr obstaclesSubscriber_;
 
-            if((abs(temp.x - true_x)>epsilon) || (abs(temp.y - true_y) > epsilon)){
-                arc->k = -k;
-            }
+    bool sim = true;
 
-            for (int j = 0; j < npts; j++){
+    bool mapReceived = false;
+    bool gateReceived = false;
+    bool obstaclesPositionsReceived = false;
+    bool roadmapGenerated = false;
+    //bool shelfino1PositionsReceived = false;
+    //bool shelfino2PositionsReceived = false;
+    //bool shelfino3PositionsReceived = false;
 
-                double s = arc->L/npts * j;
+    geometry_msgs::msg::Polygon mapData;
+    obstacles_msgs::msg::ObstacleArrayMsg obstaclesData;
+    geometry_msgs::msg::PoseArray gateData;
 
-                pose = circline(s, arc->x0, arc->y0, arc->th0, arc->k);
+    geometry_msgs::msg::TransformStamped t1;
+    geometry_msgs::msg::TransformStamped t2;
+    geometry_msgs::msg::TransformStamped t3;
 
-                point.x = pose.x;
-                point.y = pose.y;
-
-                points.push_back(point);
-            }
-
-            return points;
-        }
-
-        std::vector<Point> getPointsFromCurve(dubins::Curve *curve){
-
-            std::vector<Point> line1 = getPointsFromArc(curve->a1, 10);
-            std::vector<Point> line2 = getPointsFromArc(curve->a2, 30);
-            std::vector<Point> line3 = getPointsFromArc(curve->a3, 10);
-
-            std::vector<Point> totLine;
-            totLine.insert(totLine.end(), line1.begin(), line1.end());;
-            totLine.insert(totLine.end(), line2.begin(), line2.end());;
-            totLine.insert(totLine.end(), line3.begin(), line3.end());;
-            return totLine;
-        }
-
-        double offset = 0.5;
-        rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr gateSubscriber_;
-        rclcpp::Subscription<geometry_msgs::msg::Polygon>::SharedPtr mapSubscriber_;
-        rclcpp::Subscription<obstacles_msgs::msg::ObstacleArrayMsg>::SharedPtr obstaclesSubscriber_;
-
-        bool sim = true;
-
-        bool mapReceived = false;
-        bool gateReceived = false;
-        bool obstaclesPositionsReceived = false;
-        bool roadmapGenerated = false;
-        //bool shelfino1PositionsReceived = false;
-        //bool shelfino2PositionsReceived = false;
-        //bool shelfino3PositionsReceived = false;
-
-        geometry_msgs::msg::Polygon mapData;
-        obstacles_msgs::msg::ObstacleArrayMsg obstaclesData;
-        geometry_msgs::msg::PoseArray gateData;
-
-        geometry_msgs::msg::TransformStamped t1;
-        geometry_msgs::msg::TransformStamped t2;
-        geometry_msgs::msg::TransformStamped t3;
-
-        rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherR1_;
-        rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherR2_;
-        rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherR3_;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherR1_;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherR2_;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr publisherR3_;
 
 
 //        Robot shelfino1;
