@@ -327,7 +327,7 @@ public:
     }
 
 private:
-    void gateCallback(const geometry_msgs::msg::PoseArray::SharedPtr &msg) {
+    void gateCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg) {
         gateData = *msg;
         gateReceived = true;
         if (!roadmapGenerated) {
@@ -338,7 +338,7 @@ private:
         }
     }
 
-    void obstaclesCallback(const obstacles_msgs::msg::ObstacleArrayMsg::SharedPtr &msg) {
+    void obstaclesCallback(const obstacles_msgs::msg::ObstacleArrayMsg::SharedPtr msg) {
         obstaclesData = *msg;
         obstaclesPositionsReceived = true;
         if (!roadmapGenerated) {
@@ -349,7 +349,7 @@ private:
         }
     }
 
-    void bordersCallback(const geometry_msgs::msg::Polygon::SharedPtr &msg) {
+    void bordersCallback(const geometry_msgs::msg::Polygon::SharedPtr msg) {
         mapData = *msg;
         mapReceived = true;
         if (!roadmapGenerated) {
@@ -463,13 +463,13 @@ private:
                 }
             }
 
-            if (path1_index == path1.size()) {
+            if (path1_index == int(path1.size())) {
                 path1_finished = true;
             }
-            if (path2_index == path2.size()) {
+            if (path2_index == int(path2.size())) {
                 path2_finished = true;
             }
-            if (path3_index == path3.size()) {
+            if (path3_index == int(path3.size())) {
                 path3_finished = true;
             }
         }
