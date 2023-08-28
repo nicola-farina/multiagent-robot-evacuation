@@ -231,7 +231,7 @@ public:
             quaternionTemp.x = 0;
             quaternionTemp.y = 0;
             quaternionTemp.z = 0;
-            quaternionTemp.w = 0;
+            quaternionTemp.w = 1;
 
             poseTemp.position = positionTemp;
             poseTemp.orientation = quaternionTemp;
@@ -259,7 +259,7 @@ public:
             quaternionTemp2.x = 0;
             quaternionTemp2.y = 0;
             quaternionTemp2.z = 0;
-            quaternionTemp2.w = 0;
+            quaternionTemp2.w = 1;
 
             poseTemp2.position = positionTemp2;
             poseTemp2.orientation = quaternionTemp2;
@@ -289,7 +289,7 @@ public:
             quaternionTemp3.x = 0;
             quaternionTemp3.y = 0;
             quaternionTemp3.z = 0;
-            quaternionTemp3.w = 0;
+            quaternionTemp3.w = 1;
 
             poseTemp3.position = positionTemp3;
             poseTemp3.orientation = quaternionTemp3;
@@ -542,9 +542,9 @@ private:
 
     std::vector<Point> getPointsFromCurve(dubins::Curve *curve) {
 
-        std::vector<Point> line1 = getPointsFromArc(curve->a1, 10);
-        std::vector<Point> line2 = getPointsFromArc(curve->a2, 30);
-        std::vector<Point> line3 = getPointsFromArc(curve->a3, 10);
+        std::vector<Point> line1 = getPointsFromArc(curve->a1, 100);
+        std::vector<Point> line2 = getPointsFromArc(curve->a2, 100);
+        std::vector<Point> line3 = getPointsFromArc(curve->a3, 100);
 
         std::vector<Point> totLine;
         totLine.insert(totLine.end(), line1.begin(), line1.end());;
