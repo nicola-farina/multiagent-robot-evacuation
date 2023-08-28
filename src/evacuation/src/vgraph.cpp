@@ -167,7 +167,6 @@ namespace vgraph {
             setVerticesProcessed.erase(setVerticesProcessed.begin());
 
             Point u = tmp.second;
-            std::cout << "Point: " << u.x << ", " << u.y << std::endl;
 
             // If we reached the destination, we can stop
             if (u == destination) {
@@ -190,7 +189,6 @@ namespace vgraph {
 
                     // Update the distance from the point v
                     dist[v] = dist[u] + weight;
-                    std::cout << "Distance: " << dist[v] << std::endl;
 
                     setVerticesProcessed.insert(std::make_pair(dist[v], v));
                     prev.insert(std::make_pair(v, u));

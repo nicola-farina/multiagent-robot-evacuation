@@ -192,7 +192,7 @@ public:
         }
 
         // Coordination task
-        std::vector<std::vector<Point>> finalPointsSafe = getPathsWithoutRobotCollisions(finalPoints[1], finalPoints[2], finalPoints[3]);
+        std::vector<std::vector<Point>> finalPointsSafe = getPathsWithoutRobotCollisions(finalPoints[0], finalPoints[1], finalPoints[2]);
 
         // Publish paths
         RCLCPP_INFO(this->get_logger(), "Publishing paths...");
@@ -254,7 +254,7 @@ public:
             Point point = finalPointsSafe[1][i];
             positionTemp2.x = point.x;
             positionTemp2.y = point.y;
-            positionTemp2.y = -3;
+            positionTemp2.z = 0;
 
             quaternionTemp2.x = 0;
             quaternionTemp2.y = 0;
@@ -307,12 +307,21 @@ public:
         RCLCPP_INFO(this->get_logger(), "Sending goal shelfino1");
 
         action_client_1->async_send_goal(goalMsgR1);
+
+        for(Point p: finalPointsSafe[0]){
+            RCLCPP_INFO(this->get_logger(), "x: %f, y: %f", p.x, p.y);
+        }
+
         RCLCPP_INFO(this->get_logger(), "Goal sent shelfino1");
 
         auto goalMsgR2 = FollowPath::Goal();
         goalMsgR2.path = path2;
         goalMsgR2.controller_id = "FollowPath";
         RCLCPP_INFO(this->get_logger(), "Sending goal shelfino2");
+
+        for(Point p: finalPointsSafe[1]){
+            RCLCPP_INFO(this->get_logger(), "x: %f, y: %f", p.x, p.y);
+        }
 
         action_client_2->async_send_goal(goalMsgR2);
         RCLCPP_INFO(this->get_logger(), "Goal sent shelfino2");
@@ -321,6 +330,10 @@ public:
         goalMsgR3.path = path3;
         goalMsgR3.controller_id = "FollowPath";
         RCLCPP_INFO(this->get_logger(), "Sending goal shelfino3");
+
+        for(Point p: finalPointsSafe[2]){
+            RCLCPP_INFO(this->get_logger(), "x: %f, y: %f", p.x, p.y);
+        }
 
         action_client_3->async_send_goal(goalMsgR3);
         RCLCPP_INFO(this->get_logger(), "Goal sent shelfino3");
@@ -361,6 +374,19 @@ private:
     }
 
     std::vector<std::vector<Point>> getPathsWithoutRobotCollisions(std::vector<Point> path1, std::vector<Point> path2, std::vector<Point> path3) {
+        RCLCPP_INFO(this->get_logger(), "Path1");
+        for(Point p: path1){
+            RCLCPP_INFO(this->get_logger(), "x: %f, y: %f", p.x, p.y);
+        }
+        RCLCPP_INFO(this->get_logger(), "Path2");
+        for(Point p: path2){
+            RCLCPP_INFO(this->get_logger(), "x: %f, y: %f", p.x, p.y);
+        }
+        RCLCPP_INFO(this->get_logger(), "Path3");
+        for(Point p: path3){
+            RCLCPP_INFO(this->get_logger(), "x: %f, y: %f", p.x, p.y);
+        }
+
         bool path1_finished = false;
         bool path2_finished = false;
         bool path3_finished = false;
