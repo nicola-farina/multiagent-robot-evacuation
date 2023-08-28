@@ -1,6 +1,6 @@
-build/*
-install/*
-log/*
-site/*
-.idea/
-cmake-build-debug/*
+**/build/
+**/install/
+**/log/
+**/site/
+**/.idea/
+**/cmake-build-debug/
