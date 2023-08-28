@@ -15,13 +15,14 @@ namespace vgraph {
     struct Node {
         Point position;
 
-        Node(Point position) : position(position) {}
+        explicit Node(Point position) : position(position) {}
     };
 
 
     struct AdjacentNode {
         Point point;
         double distance;
+
         AdjacentNode(Point point, double distance) : point(point), distance(distance) {}
     };
 
@@ -35,26 +36,11 @@ namespace vgraph {
 
     class VGraph {
     public:
-        VGraph(std::vector<Robot> robots, std::vector<Polygon> obstacles, Point gate);
+        VGraph(std::vector<Robot> robots, std::vector<Polygon> obstacles, Pose gate);
 
-        void addNode(Node node);
-
-        void addEdge(Edge edge);
-
-        std::vector<Edge> getEdges();
-
-        std::vector<Node> getNodes();
-
-        std::map<Point, std::vector<AdjacentNode>> getAdj();
-
-        bool existEdge(Node start, Node end);
-
-        Edge getEdge(Node start, Node end);
-
-        bool intersectsObstacle(Point start, Point end, std::vector<Polygon> obstacles);
+        bool intersectsObstacle(Point start, Point end, const std::vector<Polygon> &obstacles);
 
         bool intersectsLine(Point p1, Point p2, Polygon obstacle);
-
 
         bool lineIntersectsSegment(Point p1, Point q1, Point p2, Point q2);
 
@@ -69,7 +55,6 @@ namespace vgraph {
         std::vector<Edge> edges;
         std::vector<Robot> robots;
         std::vector<Polygon> obstacles;
-        Point gate;
         Polygon map;
         std::map<Point, std::vector<AdjacentNode>> adj;
     };

@@ -170,7 +170,7 @@ namespace dubins
          * @brief Bound on maximum path curvature
          *
          */
-        double k_max = 1;  // TODO: in the provided code, this is 3
+        double k_max = 1;
 
         /**
          * @brief Given a path of infinite points, what is the discritizer size? Expressed in meters

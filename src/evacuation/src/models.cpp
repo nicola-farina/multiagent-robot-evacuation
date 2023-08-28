@@ -23,7 +23,7 @@ Robot Environment::getRobot(int i) {
     return robots[i];
 }
 
-Point Environment::getGate() {
+Pose Environment::getGate() {
     return gate;
 }
 

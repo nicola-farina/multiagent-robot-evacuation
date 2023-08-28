@@ -5,32 +5,47 @@
 #ifndef ENVIRONMENT_HPP
 #define ENVIRONMENT_HPP
 
+#include <utility>
 #include <vector>
 #include <iostream>
 #include "clipper.hpp"
 
 struct Point {
     double x, y;
-    int id;
-    Point(double x = -1, double y = -1, int id = -1) : x(x), y(y), id(id) {}
-    bool operator==(const Point& other) const {
+
+    explicit Point(double x = -1, double y = -1) : x(x), y(y) {}
+
+    bool operator==(const Point &other) const {
         return x == other.x && y == other.y;
     }
 
-    bool operator<(const Point& point2) const
-    {
+    bool operator<(const Point &point2) const {
         return (x < point2.x) || (x == point2.x && y < point2.y);
+    }
+};
+
+struct Pose {
+    double x;
+    double y;
+    double th;
+
+    Pose() = default;
+
+    Pose(double x, double y, double th) : x(x), y(y), th(th) {}
+
+    Point getPosition() {
+        return Point(x, y);
     }
 };
 
 struct Polygon {
     std::vector<Point> points;
 
-    Polygon(std::vector<Point> points = std::vector<Point>()) : points(points) {}
+    explicit Polygon(std::vector<Point> points = std::vector<Point>()) : points(std::move(points)) {}
 
     std::vector<std::vector<Point>> getPolygonEdges() {
         std::vector<std::vector<Point>> edges;
-        for(std::vector<Point>::size_type i = 0; i < points.size(); i++) {
+        for (std::vector<Point>::size_type i = 0; i < points.size(); i++) {
             std::vector<Point> edge;
             edge.push_back(points[i]);
             edge.push_back(points[(i + 1) % points.size()]);
@@ -41,39 +56,51 @@ struct Polygon {
 };
 
 struct Robot {
-    Point shape;
-    double radius;
+    Pose pose;
+    int index;
+    std::string name;
 
-    Robot() {}
-    Robot(Point shape, double radius) : shape(shape), radius(radius) {}
+    Robot() = default;
+
+    explicit Robot(Pose initialPose, int index, const std::string &name = "shelfino") :
+            pose(initialPose),
+            index(index),
+            name(name + "/" + std::to_string(index)) {}
+
+    Point getPosition() {
+        return pose.getPosition();
+    }
+
+    double getOrientation() {
+        return pose.th;
+    }
 };
 
-struct Pose {
-    double x;
-    double y;
-    double th;
+namespace environment {
 
-    Pose() {}
-    Pose(double x, double y, double th) : x(x), y(y), th(th) {}
-};
+    /*class Robot {
+    public:
+        Robot(Pose initialPose, int id, const std::string &name) : initialPose(initialPose), id(id), name(name + "/" + std::to_string(id)) {}
 
+    private:
+        Pose initialPose;
+        int id;
+        std::string name;
 
-namespace environment
-{
+    };*/
+
     /**
      * @brief Class used to create the visibility graph given a certain environment
-     *
      */
-
     class Environment {
     public:
-        // Constructor
-        Environment(const Polygon& map,
-                    const std::vector<Polygon>& obstacles,
-                    const std::vector<Robot>& robots,
-                    const Point& gate)
-                : map(map), robots(robots), gate(gate) {
-            for (const Polygon& obstacle : obstacles) {
+        Environment(
+                Polygon map,
+                const std::vector<Polygon> &obstacles,
+                const std::vector<Robot> &robots,
+                const Pose &gate
+        ) : map(std::move(map)), robots(robots), gate(gate) {
+            for (const Polygon &obstacle: obstacles) {
                 if (this->isInside(obstacle)) {
                     std::cout << "Obstacle is entirely inside the map." << std::endl;
                     this->obstacles.push_back(obstacle);
@@ -100,13 +127,13 @@ namespace environment
 
         Robot getRobot(int i);
 
-        Point getGate();
+        Pose getGate();
 
     private:
         Polygon map;
         std::vector<Polygon> obstacles;
         std::vector<Robot> robots;
-        Point gate;
+        Pose gate;
 
         bool isInside(Polygon obstacle);
 

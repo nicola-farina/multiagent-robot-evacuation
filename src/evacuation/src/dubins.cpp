@@ -60,9 +60,8 @@ namespace dubins
         double eq3 = rangeSymm(k0 * curve_segments->s1 + k1 * curve_segments->s2 + k2 * curve_segments->s3 + th0 - thf);
 
         bool Lpos = (curve_segments->s1 > 0) || (curve_segments->s2 > 0) || (curve_segments->s3 > 0);
-        // TODO: I modified the value 1.e-10 to 1.e-2 -> if we lower the threshold, the program says our results are valid.
-        // otherwise not. This is the problem I was describing in the group
-        return (sqrt(eq1 * eq1 + eq2 * eq2 + eq3 * eq3) < 1.e-2 && Lpos);
+
+        return (sqrt(eq1 * eq1 + eq2 * eq2 + eq3 * eq3) < 1.e-10 && Lpos);
     };
 
     /**
