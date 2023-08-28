@@ -473,7 +473,7 @@ private:
                     safePath2.push_back(path2[path2_index - 1]); // It raise exception only if the first points of the paths intersect. It means that they spawn directly with collision.
                 } else {
                     safePath2.push_back(path2[path2_index]);
-                    path1_index++;
+                    path2_index++;
                 }
             } else {
                 p2IntersectP3 = false;
