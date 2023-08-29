@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.8)
 project(evacuation)
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
+if (CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options(-Wall -Wextra -Wpedantic)
+endif ()
 
 # Add the following line at the beginning of the CMakeLists.txt
 find_package(ament_cmake REQUIRED)
@@ -28,34 +28,35 @@ add_executable(evacuation
         src/clipper.cpp
         src/clipper_extensions.cpp
         src/dubins.cpp
-        src/models.cpp
+        src/environment.cpp
         src/vgraph.cpp
-        src/utils.cpp
+        src/dubins_utils.cpp
+        src/coordination.cpp
 )
 
 ament_target_dependencies(evacuation
-  rclcpp
-  geometry_msgs
-  obstacles_msgs
-  nav_msgs
-  nav2_msgs
-  tf2
-  tf2_ros
-  rclcpp_action
-  rclcpp_components
-  std_srvs
+        rclcpp
+        geometry_msgs
+        obstacles_msgs
+        nav_msgs
+        nav2_msgs
+        tf2
+        tf2_ros
+        rclcpp_action
+        rclcpp_components
+        std_srvs
 )
 
 
 # Install the executable
 install(TARGETS evacuation
-  DESTINATION lib/${PROJECT_NAME}
+        DESTINATION lib/${PROJECT_NAME}
 )
 
 # Add the install() command after ament_package()
 install(DIRECTORY
         launch
-  DESTINATION share/${PROJECT_NAME})
+        DESTINATION share/${PROJECT_NAME})
 
 # ament_package() should be called before install
 ament_package()

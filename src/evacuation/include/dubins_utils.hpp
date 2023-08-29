@@ -8,25 +8,19 @@
  *
  */
 
-#ifndef UTILS
-#define UTILS
+#ifndef DUBINS_UTILS_HPP
+#define DUBINS_UTILS_HPP
 
-#define _USE_MATH_DEFINES
-#include <cmath>
-#include <vector>
-#include <cstddef>
-#include "models.hpp"
+#include "environment.hpp"
 
-namespace dubins
-{
+namespace dubins {
     /**
      * @brief A point structure, that can be used as:
      * - a simple 2D point (x,y)
      * - a point representing a position (x,y,theta)
      *
      */
-    struct DubinsPoint
-    {
+    struct DubinsPoint {
         double x, y, th;
 
         DubinsPoint(double x = -1, double y = -1, double th = -1) : x(x), y(y), th(th) {}
@@ -74,7 +68,7 @@ namespace dubins
      */
     double dot2D(DubinsPoint a, DubinsPoint b);
 
-    int getOrientation(Point p, Point q, Point r);
+    int getOrientation(evacuation::Point p, evacuation::Point q, evacuation::Point r);
 
 }
 

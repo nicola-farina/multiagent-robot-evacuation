@@ -8,10 +8,10 @@
  *
  */
 
-#include "utils.hpp"
+#include <valarray>
+#include "dubins_utils.hpp"
 
-namespace dubins
-{
+namespace dubins {
 
     /**
      * @brief Implementation of function sinc(t)
@@ -19,15 +19,11 @@ namespace dubins
      * @param t TODO
      * @return double 1 for t==0, and sin(t)/t otherwise
      */
-    double sinc(double t)
-    {
+    double sinc(double t) {
         double s;
-        if (std::abs(t) < 0.002)
-        {
+        if (std::abs(t) < 0.002) {
             s = 1 - pow(t, 2) / 6 * (1 - pow(t, 2) / 20);
-        }
-        else
-        {
+        } else {
             s = sin(t) / t;
         }
         return s;
@@ -39,15 +35,12 @@ namespace dubins
      * @param ang Angle to normalize
      * @return double Normalized angle
      */
-    double mod2pi(double ang)
-    {
+    double mod2pi(double ang) {
         double out = ang;
-        while (out < 0)
-        {
+        while (out < 0) {
             out = out + 2 * M_PI;
         }
-        while (out >= 2 * M_PI)
-        {
+        while (out >= 2 * M_PI) {
             out = out - 2 * M_PI;
         }
         return out;
@@ -59,15 +52,12 @@ namespace dubins
      * @param ang Angular difference to normalize
      * @return double Normalized angular difference
      */
-    double rangeSymm(double ang)
-    {
+    double rangeSymm(double ang) {
         double out = ang;
-        while (out <= -M_PI)
-        {
+        while (out <= -M_PI) {
             out = out + 2 * M_PI;
         }
-        while (out > M_PI)
-        {
+        while (out > M_PI) {
             out = out - 2 * M_PI;
         }
         return out;
@@ -80,8 +70,7 @@ namespace dubins
      * @param b Second input point
      * @return double Cross product between provided points
      */
-    double crossProduct(DubinsPoint a, DubinsPoint b)
-    {
+    double crossProduct(DubinsPoint a, DubinsPoint b) {
         return a.x * b.y - a.y * b.x;
     }
 
@@ -92,13 +81,11 @@ namespace dubins
      * @param b Second input point
      * @return double Dot product between provided points
      */
-    double dot2D(DubinsPoint a, DubinsPoint b)
-    {
+    double dot2D(DubinsPoint a, DubinsPoint b) {
         return a.x * b.x + a.y * b.y;
     }
 
-    int getOrientation(Point p, Point q, Point r)
-    {
+    int getOrientation(evacuation::Point p, evacuation::Point q, evacuation::Point r) {
         // See https://www.geeksforgeeks.org/orientation-3-ordered-points/
         // for details of below formula.
         double val = (q.y - p.y) * (r.x - q.x) -

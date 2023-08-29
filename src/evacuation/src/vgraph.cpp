@@ -4,24 +4,26 @@
 
 #include "vgraph.hpp"
 #include <cmath>
+#include <utility>
+#include <set>
 
-namespace vgraph {
+namespace evacuation::vgraph {
     VGraph::VGraph(std::vector<Robot> robots, std::vector<Polygon> obstacles, Pose gate) {
-        nodes = std::vector<Node>();
+        nodes = std::vector<Point>();
         edges = std::vector<Edge>();
 
         // Robots initial positions
-        for (Robot robot: robots) {
-            nodes.emplace_back(robot.getPosition());
+        for (const Robot &robot: robots) {
+            nodes.push_back(robot.pose.position);
         }
 
         // Gate position
-        nodes.emplace_back(gate.getPosition());
+        nodes.push_back(gate.position);
 
         // Obstacles positions
         for (const Polygon &obstacle: obstacles) {
             for (Point point: obstacle.points) {
-                nodes.emplace_back(point);
+                nodes.push_back(point);
             }
         }
 
@@ -33,7 +35,7 @@ namespace vgraph {
                     Robot otherRobot = robots[j];
                     if (!intersectsObstacle(robot.getPosition(), otherRobot.getPosition(), obstacles)) {
                         double distance = sqrt(pow(robot.getPosition().x - otherRobot.getPosition().x, 2) + pow(robot.getPosition().y - otherRobot.getPosition().y, 2));
-                        edges.emplace_back(Node(robot.getPosition()), Node(otherRobot.getPosition()), distance);
+                        edges.emplace_back(robot.getPosition(), otherRobot.getPosition(), distance);
                         adj[robot.getPosition()].emplace_back(otherRobot.getPosition(), distance);
                         adj[otherRobot.getPosition()].emplace_back(robot.getPosition(), distance);
                     }
@@ -42,24 +44,24 @@ namespace vgraph {
         }
 
         // Compute the edges between robots and gate
-        for (Robot robot: robots) {
-            if (!intersectsObstacle(robot.getPosition(), gate.getPosition(), obstacles)) {
-                double distance = sqrt(pow(robot.getPosition().x - gate.x, 2) + pow(robot.getPosition().y - gate.y, 2));
-                edges.emplace_back(Node(robot.getPosition()), Node(gate.getPosition()), distance);
-                adj[robot.getPosition()].emplace_back(gate.getPosition(), distance);
-                adj[gate.getPosition()].emplace_back(robot.getPosition(), distance);
+        for (const Robot &robot: robots) {
+            if (!intersectsObstacle(robot.pose.position, gate.position, obstacles)) {
+                double distance = sqrt(pow(robot.pose.position.x - gate.position.x, 2) + pow(robot.pose.position.y - gate.position.y, 2));
+                edges.emplace_back(robot.pose.position, gate.position, distance);
+                adj[robot.pose.position].emplace_back(gate.position, distance);
+                adj[gate.position].emplace_back(robot.pose.position, distance);
             }
         }
 
         // Compute the edges between robots and obstacles
-        for (Robot robot: robots) {
+        for (const Robot &robot: robots) {
             for (const Polygon &obstacle: obstacles) {
                 for (Point point: obstacle.points) {
-                    if (!intersectsObstacle(robot.getPosition(), point, obstacles)) {
-                        double distance = sqrt(pow(robot.getPosition().x - point.x, 2) + pow(robot.getPosition().y - point.y, 2));
-                        edges.emplace_back(Node(robot.getPosition()), Node(point), distance);
-                        adj[robot.getPosition()].emplace_back(point, distance);
-                        adj[point].emplace_back(robot.getPosition(), distance);
+                    if (!intersectsObstacle(robot.pose.position, point, obstacles)) {
+                        double distance = sqrt(pow(robot.pose.position.x - point.x, 2) + pow(robot.pose.position.y - point.y, 2));
+                        edges.emplace_back(robot.pose.position, point, distance);
+                        adj[robot.pose.position].emplace_back(point, distance);
+                        adj[point].emplace_back(robot.pose.position, distance);
                     }
                 }
             }
@@ -71,7 +73,7 @@ namespace vgraph {
                 Point point = points[0];
                 Point otherPoint = points[1];
                 double distance = sqrt(pow(point.x - otherPoint.x, 2) + pow(point.y - otherPoint.y, 2));
-                edges.emplace_back(Node(point), Node(otherPoint), distance);
+                edges.emplace_back(point, otherPoint, distance);
                 adj[point].emplace_back(otherPoint, distance);
                 adj[otherPoint].emplace_back(point, distance);
             }
@@ -87,7 +89,7 @@ namespace vgraph {
                         for (Point otherPoint: otherObstacle.points) {
                             if (!intersectsObstacle(point, otherPoint, obstacles)) {
                                 double distance = sqrt(pow(point.x - otherPoint.x, 2) + pow(point.y - otherPoint.y, 2));
-                                edges.emplace_back(Node(point), Node(otherPoint), distance);
+                                edges.emplace_back(point, otherPoint, distance);
                                 adj[point].emplace_back(otherPoint, distance);
                                 adj[otherPoint].emplace_back(point, distance);
                             }
@@ -100,24 +102,22 @@ namespace vgraph {
         // Compute the edges between gate and obstacles
         for (const Polygon &obstacle: obstacles) {
             for (Point point: obstacle.points) {
-                if (!intersectsObstacle(point, gate.getPosition(), obstacles)) {
-                    double distance = sqrt(pow(point.x - gate.x, 2) + pow(point.y - gate.y, 2));
-                    edges.emplace_back(Node(point), Node(gate.getPosition()), distance);
-                    adj[point].emplace_back(gate.getPosition(), distance);
-                    adj[gate.getPosition()].emplace_back(point, distance);
+                if (!intersectsObstacle(point, gate.position, obstacles)) {
+                    double distance = sqrt(pow(point.x - gate.position.x, 2) + pow(point.y - gate.position.y, 2));
+                    edges.emplace_back(point, gate.position, distance);
+                    adj[point].emplace_back(gate.position, distance);
+                    adj[gate.position].emplace_back(point, distance);
                 }
             }
         }
     }
 
     bool VGraph::intersectsObstacle(Point start, Point end, const std::vector<Polygon> &obstacles) {
-        for (const Polygon &obstacle: obstacles) {
-            if (intersectsLine(start, end, obstacle)) {
-                return true;
-            }
-        }
-        return false;
-    };
+        return std::any_of(
+                obstacles.begin(), obstacles.end(),
+                [&start, &end](const Polygon &obstacle) { return intersectsLine(start, end, obstacle); }
+        );
+    }
 
 
     bool VGraph::intersectsLine(Point p1, Point p2, Polygon obstacle) {
@@ -174,12 +174,12 @@ namespace vgraph {
             }
 
             // Loop through all adjacent vertices of the point u
-            for (AdjacentNode e: adj[u]) {
+            for (AdjacentPoint e: adj[u]) {
                 Point v = e.point;
                 // The weight is simply the distance between the points
                 double weight = e.distance;
 
-                // If there is a shortest path from v through u (or it's the first one we find)
+                // If there is the shortest path from v through u (or it's the first one we find)
                 if (!dist.count(v) || dist[v] > dist[u] + weight) {
                     // If we already had a distance from v through u, erase it (then we will insert the new one)
                     if (dist.count(v)) {
