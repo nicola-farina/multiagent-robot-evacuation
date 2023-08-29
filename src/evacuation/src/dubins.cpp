@@ -817,11 +817,8 @@ namespace dubins {
         return nullptr;
     }
 
-    vector <Pose> interpolateArc(Arc *arc, int num_points) {
-
-    }
-
     vector <Pose> Dubins::interpolateCurves(Curve **curves, int size, int points_per_arc) {
+        vector<Pose> totLine;
         for (int i = 0; i < size; i++) {
             Curve *curve = curves[i];
 
@@ -829,12 +826,12 @@ namespace dubins {
             vector<Pose> line2 = interpolateArc(curve->a2, points_per_arc);
             vector<Pose> line3 = interpolateArc(curve->a3, points_per_arc);
 
-            vector<Pose> totLine;
+
             totLine.insert(totLine.end(), line1.begin(), line1.end());
             totLine.insert(totLine.end(), line2.begin(), line2.end());
             totLine.insert(totLine.end(), line3.begin(), line3.end());
-            return totLine;
         }
+        return totLine;
     }
 
     vector <Pose> Dubins::interpolateArc(Arc *arc, int num_points) {
