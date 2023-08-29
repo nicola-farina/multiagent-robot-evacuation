@@ -1,5 +1,8 @@
 #include "environment.hpp"
 
+#include <utility>
+#include "clipper.hpp"
+
 namespace evacuation {
     Point::Point() = default;
 
@@ -17,6 +20,20 @@ namespace evacuation {
 
     Pose::Pose(double x, double y, double th) : position(Point(x, y)), th(th) {}
 
+    geometry_msgs::msg::PoseStamped Pose::toPoseStamped(rclcpp::Time time, std::string frameId) const {
+        geometry_msgs::msg::PoseStamped stamped;
+        stamped.header.stamp = time;
+        stamped.header.frame_id = std::move(frameId);
+        stamped.pose.position.x = position.x;
+        stamped.pose.position.y = position.y;
+        stamped.pose.position.z = 0.0;
+        stamped.pose.orientation.x = 0.0;
+        stamped.pose.orientation.y = 0.0;
+        stamped.pose.orientation.z = th;
+        stamped.pose.orientation.w = 1.0;
+        return stamped;
+    }
+
     Polygon::Polygon() = default;
 
     Polygon::Polygon(std::vector<Point> points) : points(std::move(points)) {}
@@ -30,6 +47,22 @@ namespace evacuation {
             edges.push_back(edge);
         }
         return edges;
+    }
+
+    Robot::Robot() = default;
+
+    Robot::Robot(int id) : id(id) {}
+
+    Point Robot::getPosition() {
+        return pose.position;
+    }
+
+    double Robot::getOrientation() {
+        return pose.th;
+    }
+
+    std::string Robot::getName() {
+        return "shelfino" + std::to_string(id);
     }
 
     Environment::Environment(evacuation::Polygon map, const std::vector<Polygon> &obstacles, const std::vector<Robot> &robots, const evacuation::Pose &gate)

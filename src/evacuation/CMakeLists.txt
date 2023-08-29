@@ -25,13 +25,6 @@ include_directories(
 
 add_executable(evacuation
         src/evacuation.cpp
-        src/clipper.cpp
-        src/clipper_extensions.cpp
-        src/dubins.cpp
-        src/environment.cpp
-        src/vgraph.cpp
-        src/utils.cpp
-        src/robot.cpp
 )
 
 ament_target_dependencies(evacuation

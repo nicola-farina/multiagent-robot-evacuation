@@ -10,16 +10,12 @@
 #include "obstacles_msgs/msg/obstacle_array_msg.hpp"
 #include "obstacles_msgs/msg/obstacle_msg.hpp"
 #include "geometry_msgs/msg/pose_array.hpp"
-#include "geometry_msgs/msg/pose.hpp"
 #include "clipper.hpp"
 #include "clipper_extensions.hpp"
 #include "environment.hpp"
 #include "vgraph.hpp"
 #include "dubins.hpp"
 #include "utils.hpp"
-#include "geometry_msgs/msg/point.hpp"
-#include "geometry_msgs/msg/pose_stamped.hpp"
-#include "geometry_msgs/msg/quaternion.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "nav2_msgs/action/follow_path.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
@@ -28,7 +24,6 @@
 #include "tf2/exceptions.h"
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
-#include "robot.hpp"
 
 using namespace std::chrono_literals;
 using namespace evacuation;
@@ -39,11 +34,6 @@ class EvacuationNode : public rclcpp::Node {
 public:
     EvacuationNode() : Node("evacuation") {
         auto qos = rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_sensor_data);
-
-        // Setup robots
-        shelfino1 = Robot(this, 1, robotRadius);
-        shelfino2 = Robot(this, 2, robotRadius);
-        shelfino3 = Robot(this, 3, robotRadius);
 
         // Read map borders
         mapSubscriber = this->create_subscription<geometry_msgs::msg::Polygon>(
@@ -57,9 +47,14 @@ public:
         obstaclesSubscriber = this->create_subscription<obstacles_msgs::msg::ObstacleArrayMsg>(
                 "obstacles", qos, std::bind(&EvacuationNode::obstaclesCallback, this, std::placeholders::_1));
 
-        // Setup robot transforms
-        for (int id=1; id<4; id++) {
-            setupLookupTransform(id);
+        // Setup robots
+        shelfino1 = Robot(1);
+        shelfino2 = Robot(2);
+        shelfino3 = Robot(3);
+        robots = {shelfino1, shelfino2, shelfino3};
+        for (Robot robot: robots) {
+            setupLookupTransform(robot);
+            setupFollowPathActionClient(robot);
         }
     }
 
@@ -95,7 +90,6 @@ public:
         shelfino1.pose = Pose{shelfino1Transform.transform.translation.x, shelfino1Transform.transform.translation.y, shelfino1Transform.transform.rotation.z};
         shelfino2.pose = Pose{shelfino2Transform.transform.translation.x, shelfino2Transform.transform.translation.y, shelfino2Transform.transform.rotation.z};
         shelfino3.pose = Pose{shelfino3Transform.transform.translation.x, shelfino3Transform.transform.translation.y, shelfino3Transform.transform.rotation.z};
-        vector<Robot> robots = {shelfino1, shelfino2, shelfino3};
         RCLCPP_INFO(this->get_logger(), "Robots initial poses read successfully!");
 
         // ========= PREPARE ROADMAP =========
@@ -103,180 +97,103 @@ public:
 
         dubins::Dubins dubins = dubins::Dubins(dubinsMaxCurvature, 0.005);  // TODO: discretization
 
+        // Offset obstacles. For visibility graph we use a larger offset (for safety margin)
         vector<Polygon> polygonsForVisgraph;
         vector<Polygon> polygonsForDubins;
-        vector<vector<Polygon>> pols = enlargeAndJoinObstacles(env.getObstacles(), robotRadius);
+        vector<vector<Polygon>> pols = ClipperLibExtensions::enlargeAndJoinObstacles(env.getObstacles(), robotRadius);
         polygonsForVisgraph = pols[0];
         polygonsForDubins = pols[1];
         polygonsForDubins.push_back(map);
 
-        VGraph visGraph = VGraph({shelfino1, shelfino2, shelfino3}, polygonsForVisgraph, gate);
-        vector<int> curves_len;
-        vector<vector<Point>> finalPoints;
-        vector<Point> robotPoints;
-        for (vector<Robot>::size_type r = 0; r < robots.size(); r++) {
-            Robot robot = robots[r];
+        VGraph visGraph = VGraph(robots, polygonsForVisgraph, gate);
+        vector<vector<Pose>> paths;
+        for (Robot robot: robots) {
+            // Compute the shortest path using visibility graph
             vector<Point> path = visGraph.shortestPath(robot.getPosition(), gate.position);
+            // Prepare data structure for dubins (only first and last point have orientation)
             auto **points = new dubins::DubinsPoint *[path.size()];
             points[0] = new dubins::DubinsPoint(path[0].x, path[0].y, robot.getOrientation());
             for (vector<Point>::size_type i = 1; i < path.size() - 1; i++) {
                 points[i] = new dubins::DubinsPoint(path[i].x, path[i].y);
             }
-            points[path.size() - 1] = new dubins::DubinsPoint(path[path.size() - 1].x, path[path.size() - 1].y);
-            curves_len.push_back(path.size() - 1);
-            dubins::Curve **curves = dubins.multipointShortestPath(points, path.size(), polygonsForDubins,
-                                                                   env.getMap());
+            points[path.size() - 1] = new dubins::DubinsPoint(path[path.size() - 1].x, path[path.size() - 1].y, gate.th);
+            // Compute and interpolate dubins curves
+            dubins::Curve **curves = dubins.multipointShortestPath(points, path.size(), polygonsForDubins, env.getMap());
             if (curves == nullptr) {
-                RCLCPP_INFO(this->get_logger(), "Path not found!");
+                RCLCPP_INFO(this->get_logger(), "[%s] Path not found!", robot.getName().c_str());
             } else {
-                RCLCPP_INFO(this->get_logger(), "Path computed!");
-                for (int i = 0; i < curves_len[r]; i++) {
-                    vector<Point> curvePoint = getPointsFromCurve(curves[i]);
-                    robotPoints.insert(robotPoints.end(), curvePoint.begin(), curvePoint.end());
-                }
+                RCLCPP_INFO(this->get_logger(), "[%s] Path computed!", robot.getName().c_str());
+                paths.push_back(dubins::Dubins::interpolateCurves(curves, path.size() - 1, 100));
             }
-            finalPoints.push_back(robotPoints);
-            robotPoints.clear();
         }
 
         // ========= AVOID ROBOT COLLISIONS =========
-        vector<vector<Point>> finalPointsSafe = getPathsWithoutRobotCollisions(finalPoints[0], finalPoints[1], finalPoints[2]);
+        // vector<vector<Point>> finalPointsSafe = getPathsWithoutRobotCollisions(finalPoints[0], finalPoints[1], finalPoints[2]);
 
         // ========= PUBLISH PATHS =========
         RCLCPP_INFO(this->get_logger(), "Publishing paths...");
 
         // Wait for all action servers to be available
-        for (Robot robot : robots) {
-            robot.waitForActionServer();
+        for (Robot robot: robots) {
+            waitForFollowPathActionServer(robot);
         }
 
-        // Send path to robot
+        // Send path to robots
+        for (Robot robot: robots) {
+            nav_msgs::msg::Path navPath;
+            for (Pose p: paths[robot.id - 1]) {
+                navPath.poses.push_back(p.toPoseStamped(this->get_clock()->now(), "map"));
+            }
+            navPath.header.stamp = this->get_clock()->now();
+            navPath.header.frame_id = "map";
 
-        /*nav_msgs::msg::Path path1;
-        path1.header.frame_id = "map";
-        vector<geometry_msgs::msg::PoseStamped> posesTemp;
-        geometry_msgs::msg::Pose poseTemp;
-        geometry_msgs::msg::Point positionTemp;
-        geometry_msgs::msg::Quaternion quaternionTemp;
-        geometry_msgs::msg::PoseStamped poseStampedTemp;
-        for (vector<Robot>::size_type i = 0; i < finalPointsSafe[0].size(); i++) {
-            Point point = finalPointsSafe[0][i];
-            positionTemp.x = point.x;
-            positionTemp.y = point.y;
-            positionTemp.z = 0;
-
-            quaternionTemp.x = 0;
-            quaternionTemp.y = 0;
-            quaternionTemp.z = 0;
-            quaternionTemp.w = 1;
-
-            poseTemp.position = positionTemp;
-            poseTemp.orientation = quaternionTemp;
-
-            poseStampedTemp.pose = poseTemp;
-            poseStampedTemp.header.frame_id = "base_link";
-
-            posesTemp.push_back(poseStampedTemp);
+            auto goalMsg = nav2_msgs::action::FollowPath::Goal();
+            goalMsg.path = navPath;
+            goalMsg.controller_id = "FollowPath";
+            switch (robot.id) {
+                case 1:
+                    shelfino1FollowPathActionClient->async_send_goal(goalMsg);
+                    break;
+                case 2:
+                    shelfino2FollowPathActionClient->async_send_goal(goalMsg);
+                    break;
+                case 3:
+                    shelfino3FollowPathActionClient->async_send_goal(goalMsg);
+                    break;
+                default:
+                    RCLCPP_ERROR(this->get_logger(), "Can only work with shelfino1, shelfino2 and shelfino3!");
+                    rclcpp::shutdown();
+            }
+            RCLCPP_INFO(this->get_logger(), "[%s] Goal sent!", robot.getName().c_str());
         }
-        path1.poses = posesTemp;
-
-        nav_msgs::msg::Path path2;
-        vector<geometry_msgs::msg::PoseStamped> posesTemp2;
-        geometry_msgs::msg::Pose poseTemp2;
-        geometry_msgs::msg::Point positionTemp2;
-        geometry_msgs::msg::Quaternion quaternionTemp2;
-        geometry_msgs::msg::PoseStamped poseStampedTemp2;
-        path2.header.frame_id = "map";
-        for (vector<Robot>::size_type i = 0; i < finalPointsSafe[1].size(); i++) {
-            Point point = finalPointsSafe[1][i];
-            positionTemp2.x = point.x;
-            positionTemp2.y = point.y;
-            positionTemp2.z = 0;
-
-            quaternionTemp2.x = 0;
-            quaternionTemp2.y = 0;
-            quaternionTemp2.z = 0;
-            quaternionTemp2.w = 1;
-
-            poseTemp2.position = positionTemp2;
-            poseTemp2.orientation = quaternionTemp2;
-
-            poseStampedTemp2.pose = poseTemp2;
-            poseStampedTemp2.header.frame_id = "base_link";
-
-            posesTemp2.push_back(poseStampedTemp2);
-        }
-
-
-        path2.poses = posesTemp2;
-
-        nav_msgs::msg::Path path3;
-        vector<geometry_msgs::msg::PoseStamped> posesTemp3;
-        geometry_msgs::msg::Pose poseTemp3;
-        geometry_msgs::msg::Point positionTemp3;
-        geometry_msgs::msg::Quaternion quaternionTemp3;
-        geometry_msgs::msg::PoseStamped poseStampedTemp3;
-        path3.header.frame_id = "map";
-        for (vector<Robot>::size_type i = 0; i < finalPointsSafe[2].size(); i++) {
-            Point point = finalPointsSafe[2][i];
-            positionTemp3.x = point.x;
-            positionTemp3.y = point.y;
-            positionTemp3.z = 0;
-
-            quaternionTemp3.x = 0;
-            quaternionTemp3.y = 0;
-            quaternionTemp3.z = 0;
-            quaternionTemp3.w = 1;
-
-            poseTemp3.position = positionTemp3;
-            poseTemp3.orientation = quaternionTemp3;
-
-            poseStampedTemp3.pose = poseTemp3;
-            poseStampedTemp3.header.frame_id = "base_link";
-
-            posesTemp3.push_back(poseStampedTemp3);
-        }
-        path3.poses = posesTemp3;
-
-        auto goalMsgR1 = FollowPath::Goal();
-        goalMsgR1.path = path1;
-        goalMsgR1.controller_id = "FollowPath";
-        RCLCPP_INFO(this->get_logger(), "Sending goal shelfino1");
-
-        action_client_1->async_send_goal(goalMsgR1);
-
-        for (Point p: finalPointsSafe[0]) {
-            RCLCPP_INFO(this->get_logger(), "x: %f, y: %f", p.x, p.y);
-        }
-
-        RCLCPP_INFO(this->get_logger(), "Goal sent shelfino1");
-
-        auto goalMsgR2 = FollowPath::Goal();
-        goalMsgR2.path = path2;
-        goalMsgR2.controller_id = "FollowPath";
-        RCLCPP_INFO(this->get_logger(), "Sending goal shelfino2");
-
-        for (Point p: finalPointsSafe[1]) {
-            RCLCPP_INFO(this->get_logger(), "x: %f, y: %f", p.x, p.y);
-        }
-
-        action_client_2->async_send_goal(goalMsgR2);
-        RCLCPP_INFO(this->get_logger(), "Goal sent shelfino2");
-
-        auto goalMsgR3 = FollowPath::Goal();
-        goalMsgR3.path = path3;
-        goalMsgR3.controller_id = "FollowPath";
-        RCLCPP_INFO(this->get_logger(), "Sending goal shelfino3");
-
-        for (Point p: finalPointsSafe[2]) {
-            RCLCPP_INFO(this->get_logger(), "x: %f, y: %f", p.x, p.y);
-        }
-
-        action_client_3->async_send_goal(goalMsgR3);
-        RCLCPP_INFO(this->get_logger(), "Goal sent shelfino3");*/
     }
 
 private:
+    double robotRadius = 0.3;
+    Robot shelfino1;
+    Robot shelfino2;
+    Robot shelfino3;
+    geometry_msgs::msg::TransformStamped shelfino1Transform;
+    geometry_msgs::msg::TransformStamped shelfino2Transform;
+    geometry_msgs::msg::TransformStamped shelfino3Transform;
+    vector<Robot> robots;
+
+    rclcpp_action::Client<nav2_msgs::action::FollowPath>::SharedPtr shelfino1FollowPathActionClient;
+    rclcpp_action::Client<nav2_msgs::action::FollowPath>::SharedPtr shelfino2FollowPathActionClient;
+    rclcpp_action::Client<nav2_msgs::action::FollowPath>::SharedPtr shelfino3FollowPathActionClient;
+
+    rclcpp::Subscription<geometry_msgs::msg::Polygon>::SharedPtr mapSubscriber;
+    rclcpp::Subscription<obstacles_msgs::msg::ObstacleArrayMsg>::SharedPtr obstaclesSubscriber;
+    rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr gateSubscriber;
+    geometry_msgs::msg::Polygon mapData;
+    obstacles_msgs::msg::ObstacleArrayMsg obstaclesData;
+    geometry_msgs::msg::PoseArray gateData;
+    bool mapReceived = false;
+    bool obstaclesPositionsReceived = false;
+    bool gateReceived = false;
+
+    double dubinsMaxCurvature = 2.0;
+
     void gateCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg) {
         gateData = *msg;
         gateReceived = true;
@@ -301,38 +218,17 @@ private:
         }
     }
 
-    double robotRadius = 0.3;
-    Robot shelfino1;
-    Robot shelfino2;
-    Robot shelfino3;
-    geometry_msgs::msg::TransformStamped shelfino1Transform;
-    geometry_msgs::msg::TransformStamped shelfino2Transform;
-    geometry_msgs::msg::TransformStamped shelfino3Transform;
-
-    rclcpp::Subscription<geometry_msgs::msg::Polygon>::SharedPtr mapSubscriber;
-    geometry_msgs::msg::Polygon mapData;
-    bool mapReceived = false;
-    rclcpp::Subscription<obstacles_msgs::msg::ObstacleArrayMsg>::SharedPtr obstaclesSubscriber;
-    obstacles_msgs::msg::ObstacleArrayMsg obstaclesData;
-    bool obstaclesPositionsReceived = false;
-    rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr gateSubscriber;
-    geometry_msgs::msg::PoseArray gateData;
-    bool gateReceived = false;
-
-    double dubinsMaxCurvature = 2.0;
-
-    void setupLookupTransform(const int robotId) {
+    void setupLookupTransform(Robot robot) {
         std::shared_ptr<tf2_ros::TransformListener> tf_listener{nullptr};
         std::unique_ptr<tf2_ros::Buffer> tf_buffer;
         tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
         tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
 
-        std::string robotName = "shelfino" + std::to_string(robotId);
         std::string targetFrame = "map";
-        std::string sourceFrame =  robotName + "/base_link";
+        std::string sourceFrame = robot.getName() + "/base_link";
 
         try {
-            switch (robotId) {
+            switch (robot.id) {
                 case 1:
                     shelfino1Transform = tf_buffer->lookupTransform(targetFrame, sourceFrame, tf2::TimePointZero, 30s);
                     break;
@@ -347,9 +243,54 @@ private:
                     rclcpp::shutdown();
             }
         } catch (const tf2::TransformException &ex) {
-            RCLCPP_INFO(this->get_logger(), "[%s] Could not transform %s to %s: %s", robotName.c_str(), targetFrame.c_str(), sourceFrame.c_str(), ex.what());
+            RCLCPP_INFO(this->get_logger(), "[%s] Could not transform %s to %s: %s", robot.getName().c_str(), targetFrame.c_str(), sourceFrame.c_str(), ex.what());
             sleep(1);
             return;
+        }
+    }
+
+    void setupFollowPathActionClient(Robot robot) {
+        std::string actionName = robot.getName() + "/follow_path";
+
+        switch (robot.id) {
+            case 1:
+                shelfino1FollowPathActionClient = rclcpp_action::create_client<nav2_msgs::action::FollowPath>(this, actionName);
+                break;
+            case 2:
+                shelfino2FollowPathActionClient = rclcpp_action::create_client<nav2_msgs::action::FollowPath>(this, actionName);
+                break;
+            case 3:
+                shelfino3FollowPathActionClient = rclcpp_action::create_client<nav2_msgs::action::FollowPath>(this, actionName);
+                break;
+            default:
+                RCLCPP_ERROR(this->get_logger(), "Can only work with shelfino1, shelfino2 and shelfino3!");
+                rclcpp::shutdown();
+        }
+    }
+
+    void waitForFollowPathActionServer(Robot robot) {
+        switch (robot.id) {
+            case 1:
+                if (!shelfino1FollowPathActionClient->wait_for_action_server()) {
+                    RCLCPP_ERROR(this->get_logger(), "[%s] Action server follow_path not available!", robot.getName().c_str());
+                    rclcpp::shutdown();
+                }
+                break;
+            case 2:
+                if (!shelfino2FollowPathActionClient->wait_for_action_server()) {
+                    RCLCPP_ERROR(this->get_logger(), "[%s] Action server follow_path not available!", robot.getName().c_str());
+                    rclcpp::shutdown();
+                }
+                break;
+            case 3:
+                if (!shelfino3FollowPathActionClient->wait_for_action_server()) {
+                    RCLCPP_ERROR(this->get_logger(), "[%s] Action server follow_path not available!", robot.getName().c_str());
+                    rclcpp::shutdown();
+                }
+                break;
+            default:
+                RCLCPP_ERROR(this->get_logger(), "Can only work with shelfino1, shelfino2 and shelfino3!");
+                rclcpp::shutdown();
         }
     }
 
@@ -490,47 +431,6 @@ private:
         // (R0 - R1)^2 <= (x0 - x1)^2 + (y0 - y1)^2 <= (R0 + R1)^2
         double val = std::pow((p1.x - p2.x), 2) + std::pow((p1.y - p2.y), 2);
         return val >= 0 && val <= std::pow((robotRadius * 2), 2);
-    }
-
-    Pose circline(double s, double x0, double y0, double th0, double k) {
-        Pose p;
-        p.position.x = x0 + s * dubins::sinc(k * s / 2.0) * cos(th0 + k * s / 2);
-        p.position.y = y0 + s * dubins::sinc(k * s / 2.0) * sin(th0 + k * s / 2);
-        p.th = dubins::mod2pi(th0 + k * s);
-        return p;
-    }
-
-    vector<Point> getPointsFromArc(dubins::Arc *arc, int num_points) {
-        vector<Point> points;
-        Point point;
-        Pose pose;
-
-        for (int j = 0; j < num_points; j++) {
-
-            double s = arc->L / num_points * j;
-
-            pose = circline(s, arc->x0, arc->y0, arc->th0, arc->k);
-
-            point.x = pose.position.x;
-            point.y = pose.position.y;
-
-            points.push_back(point);
-        }
-
-        return points;
-    }
-
-    vector<Point> getPointsFromCurve(dubins::Curve *curve) {
-
-        vector<Point> line1 = getPointsFromArc(curve->a1, 100);
-        vector<Point> line2 = getPointsFromArc(curve->a2, 100);
-        vector<Point> line3 = getPointsFromArc(curve->a3, 100);
-
-        vector<Point> totLine;
-        totLine.insert(totLine.end(), line1.begin(), line1.end());
-        totLine.insert(totLine.end(), line2.begin(), line2.end());
-        totLine.insert(totLine.end(), line3.begin(), line3.end());
-        return totLine;
     }
 };
 
