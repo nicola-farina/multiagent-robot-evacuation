@@ -31,6 +31,7 @@ add_executable(evacuation
         src/environment.cpp
         src/vgraph.cpp
         src/dubins_utils.cpp
+        src/coordination.cpp
 )
 
 ament_target_dependencies(evacuation

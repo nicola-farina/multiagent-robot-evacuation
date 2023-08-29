@@ -130,7 +130,6 @@ public:
 
         // ========= PREPARE ROADMAP =========
         Environment env(map, obstacles, robots, gate);
-
         dubins::Dubins dubins = dubins::Dubins(dubinsMaxCurvature, 0.005);
 
         // Offset obstacles. For visibility graph we use a larger offset (for safety margin)
