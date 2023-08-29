@@ -47,15 +47,50 @@ public:
         obstaclesSubscriber = this->create_subscription<obstacles_msgs::msg::ObstacleArrayMsg>(
                 "obstacles", qos, std::bind(&EvacuationNode::obstaclesCallback, this, std::placeholders::_1));
 
+        // Setup transforms
+        std::shared_ptr<tf2_ros::TransformListener> tf_listener{nullptr};
+        std::unique_ptr<tf2_ros::Buffer> tf_buffer;
+        tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+        tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
+        std::string targetFrame = "map";
+        std::string sourceFrame;
+
+        try {
+            sourceFrame = "shelfino1/base_link";
+            rclcpp::Time now = this->get_clock()->now();
+            shelfino1Transform = tf_buffer->lookupTransform(targetFrame, sourceFrame, tf2::TimePointZero, 30s);
+        } catch (const tf2::TransformException &ex) {
+            RCLCPP_INFO(this->get_logger(), "[shelfino1] Could not transform %s to %s: %s", targetFrame.c_str(), sourceFrame.c_str(), ex.what());
+            return;
+        }
+
+        try {
+            sourceFrame = "shelfino2/base_link";
+            rclcpp::Time now = this->get_clock()->now();
+            shelfino2Transform = tf_buffer->lookupTransform(targetFrame, sourceFrame, tf2::TimePointZero, 30s);
+        } catch (const tf2::TransformException &ex) {
+            RCLCPP_INFO(this->get_logger(), "[shelfino2] Could not transform %s to %s: %s", targetFrame.c_str(), sourceFrame.c_str(), ex.what());
+            return;
+        }
+
+        try {
+            sourceFrame = "shelfino3/base_link";
+            rclcpp::Time now = this->get_clock()->now();
+            shelfino3Transform = tf_buffer->lookupTransform(targetFrame, sourceFrame, tf2::TimePointZero, 30s);
+        } catch (const tf2::TransformException &ex) {
+            RCLCPP_INFO(this->get_logger(), "[shelfino3] Could not transform %s to %s: %s", targetFrame.c_str(), sourceFrame.c_str(), ex.what());
+            return;
+        }
+
+        // Setup FollowPath action clients
+        shelfino1FollowPathActionClient = rclcpp_action::create_client<nav2_msgs::action::FollowPath>(this, "shelfino1/follow_path");
+        shelfino2FollowPathActionClient = rclcpp_action::create_client<nav2_msgs::action::FollowPath>(this, "shelfino2/follow_path");
+        shelfino3FollowPathActionClient = rclcpp_action::create_client<nav2_msgs::action::FollowPath>(this, "shelfino3/follow_path");
+
         // Setup robots
         shelfino1 = Robot(1);
         shelfino2 = Robot(2);
         shelfino3 = Robot(3);
-        robots = {shelfino1, shelfino2, shelfino3};
-        for (Robot robot: robots) {
-            setupLookupTransform(robot);
-            setupFollowPathActionClient(robot);
-        }
     }
 
     void planEvacuation() {
@@ -90,12 +125,13 @@ public:
         shelfino1.pose = Pose{shelfino1Transform.transform.translation.x, shelfino1Transform.transform.translation.y, shelfino1Transform.transform.rotation.z};
         shelfino2.pose = Pose{shelfino2Transform.transform.translation.x, shelfino2Transform.transform.translation.y, shelfino2Transform.transform.rotation.z};
         shelfino3.pose = Pose{shelfino3Transform.transform.translation.x, shelfino3Transform.transform.translation.y, shelfino3Transform.transform.rotation.z};
+        vector<Robot> robots = {shelfino1, shelfino2, shelfino3};
         RCLCPP_INFO(this->get_logger(), "Robots initial poses read successfully!");
 
         // ========= PREPARE ROADMAP =========
         Environment env(map, obstacles, robots, gate);
 
-        dubins::Dubins dubins = dubins::Dubins(dubinsMaxCurvature, 0.005);  // TODO: discretization
+        dubins::Dubins dubins = dubins::Dubins(dubinsMaxCurvature, 0.005);
 
         // Offset obstacles. For visibility graph we use a larger offset (for safety margin)
         vector<Polygon> polygonsForVisgraph;
@@ -105,7 +141,7 @@ public:
         polygonsForDubins = pols[1];
         polygonsForDubins.push_back(map);
 
-        VGraph visGraph = VGraph(robots, polygonsForVisgraph, gate);
+        VGraph visGraph(robots, polygonsForVisgraph, gate);
         vector<vector<Pose>> paths;
         for (Robot robot: robots) {
             // Compute the shortest path using visibility graph
@@ -131,15 +167,14 @@ public:
         // vector<vector<Point>> finalPointsSafe = getPathsWithoutRobotCollisions(finalPoints[0], finalPoints[1], finalPoints[2]);
 
         // ========= PUBLISH PATHS =========
-        RCLCPP_INFO(this->get_logger(), "Publishing paths...");
-
         // Wait for all action servers to be available
-        for (Robot robot: robots) {
-            waitForFollowPathActionServer(robot);
-        }
+        RCLCPP_INFO(this->get_logger(), "Waiting for action servers...");
+        waitForFollowPathActionServers();
+        RCLCPP_INFO(this->get_logger(), "Action servers available!");
 
         // Send path to robots
         for (Robot robot: robots) {
+            RCLCPP_INFO(this->get_logger(), "[%s] Sending goal...", robot.getName().c_str());
             nav_msgs::msg::Path navPath;
             for (Pose p: paths[robot.id - 1]) {
                 navPath.poses.push_back(p.toPoseStamped(this->get_clock()->now(), "map"));
@@ -176,7 +211,6 @@ private:
     geometry_msgs::msg::TransformStamped shelfino1Transform;
     geometry_msgs::msg::TransformStamped shelfino2Transform;
     geometry_msgs::msg::TransformStamped shelfino3Transform;
-    vector<Robot> robots;
 
     rclcpp_action::Client<nav2_msgs::action::FollowPath>::SharedPtr shelfino1FollowPathActionClient;
     rclcpp_action::Client<nav2_msgs::action::FollowPath>::SharedPtr shelfino2FollowPathActionClient;
@@ -191,13 +225,15 @@ private:
     bool mapReceived = false;
     bool obstaclesPositionsReceived = false;
     bool gateReceived = false;
+    bool evacuationStarted = false;
 
     double dubinsMaxCurvature = 2.0;
 
     void gateCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg) {
         gateData = *msg;
         gateReceived = true;
-        if (mapReceived && obstaclesPositionsReceived && gateReceived) {
+        if (!evacuationStarted && mapReceived && obstaclesPositionsReceived && gateReceived) {
+            evacuationStarted = true;
             planEvacuation();
         }
     }
@@ -205,7 +241,8 @@ private:
     void obstaclesCallback(const obstacles_msgs::msg::ObstacleArrayMsg::SharedPtr msg) {
         obstaclesData = *msg;
         obstaclesPositionsReceived = true;
-        if (mapReceived && obstaclesPositionsReceived && gateReceived) {
+        if (!evacuationStarted && mapReceived && obstaclesPositionsReceived && gateReceived) {
+            evacuationStarted = true;
             planEvacuation();
         }
     }
@@ -213,88 +250,27 @@ private:
     void bordersCallback(const geometry_msgs::msg::Polygon::SharedPtr msg) {
         mapData = *msg;
         mapReceived = true;
-        if (mapReceived && obstaclesPositionsReceived && gateReceived) {
+        if (!evacuationStarted && mapReceived && obstaclesPositionsReceived && gateReceived) {
+            evacuationStarted = true;
             planEvacuation();
         }
     }
 
-    void setupLookupTransform(Robot robot) {
-        std::shared_ptr<tf2_ros::TransformListener> tf_listener{nullptr};
-        std::unique_ptr<tf2_ros::Buffer> tf_buffer;
-        tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-        tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
-
-        std::string targetFrame = "map";
-        std::string sourceFrame = robot.getName() + "/base_link";
-
-        try {
-            switch (robot.id) {
-                case 1:
-                    shelfino1Transform = tf_buffer->lookupTransform(targetFrame, sourceFrame, tf2::TimePointZero, 30s);
-                    break;
-                case 2:
-                    shelfino2Transform = tf_buffer->lookupTransform(targetFrame, sourceFrame, tf2::TimePointZero, 30s);
-                    break;
-                case 3:
-                    shelfino3Transform = tf_buffer->lookupTransform(targetFrame, sourceFrame, tf2::TimePointZero, 30s);
-                    break;
-                default:
-                    RCLCPP_ERROR(this->get_logger(), "Can only work with shelfino1, shelfino2 and shelfino3!");
-                    rclcpp::shutdown();
-            }
-        } catch (const tf2::TransformException &ex) {
-            RCLCPP_INFO(this->get_logger(), "[%s] Could not transform %s to %s: %s", robot.getName().c_str(), targetFrame.c_str(), sourceFrame.c_str(), ex.what());
-            sleep(1);
-            return;
+    void waitForFollowPathActionServers() {
+        if (!shelfino1FollowPathActionClient->wait_for_action_server()) {
+            RCLCPP_ERROR(this->get_logger(), "[shelfino1] Action server follow_path not available!");
+            rclcpp::shutdown();
         }
-    }
-
-    void setupFollowPathActionClient(Robot robot) {
-        std::string actionName = robot.getName() + "/follow_path";
-
-        switch (robot.id) {
-            case 1:
-                shelfino1FollowPathActionClient = rclcpp_action::create_client<nav2_msgs::action::FollowPath>(this, actionName);
-                break;
-            case 2:
-                shelfino2FollowPathActionClient = rclcpp_action::create_client<nav2_msgs::action::FollowPath>(this, actionName);
-                break;
-            case 3:
-                shelfino3FollowPathActionClient = rclcpp_action::create_client<nav2_msgs::action::FollowPath>(this, actionName);
-                break;
-            default:
-                RCLCPP_ERROR(this->get_logger(), "Can only work with shelfino1, shelfino2 and shelfino3!");
-                rclcpp::shutdown();
+        if (!shelfino2FollowPathActionClient->wait_for_action_server()) {
+            RCLCPP_ERROR(this->get_logger(), "[shelfino2] Action server follow_path not available!");
+            rclcpp::shutdown();
         }
-    }
-
-    void waitForFollowPathActionServer(Robot robot) {
-        switch (robot.id) {
-            case 1:
-                if (!shelfino1FollowPathActionClient->wait_for_action_server()) {
-                    RCLCPP_ERROR(this->get_logger(), "[%s] Action server follow_path not available!", robot.getName().c_str());
-                    rclcpp::shutdown();
-                }
-                break;
-            case 2:
-                if (!shelfino2FollowPathActionClient->wait_for_action_server()) {
-                    RCLCPP_ERROR(this->get_logger(), "[%s] Action server follow_path not available!", robot.getName().c_str());
-                    rclcpp::shutdown();
-                }
-                break;
-            case 3:
-                if (!shelfino3FollowPathActionClient->wait_for_action_server()) {
-                    RCLCPP_ERROR(this->get_logger(), "[%s] Action server follow_path not available!", robot.getName().c_str());
-                    rclcpp::shutdown();
-                }
-                break;
-            default:
-                RCLCPP_ERROR(this->get_logger(), "Can only work with shelfino1, shelfino2 and shelfino3!");
-                rclcpp::shutdown();
+        if (!shelfino3FollowPathActionClient->wait_for_action_server()) {
+            RCLCPP_ERROR(this->get_logger(), "[shelfino3] Action server follow_path not available!");
+            rclcpp::shutdown();
         }
     }
 };
-
 
 int main(int argc, char **argv) {
     rclcpp::init(argc, argv);
