@@ -100,9 +100,9 @@ namespace dubins {
          * @brief Construct a new Dubins object
          *
          * @param k_max Bound on maximum path curvature
-         * @param discritizer_size Given a path of infinite points, what is the discritizer size? Expressed in meters
+         * @param discretizer_size Given a path of infinite points, what is the discretizer size? Expressed in meters
          */
-        explicit Dubins(double k_max, double discritizer_size);
+        explicit Dubins(double k_max, double discretizer_size);
 
         /**
          * @brief Find the shortest path between a starting and a final position
