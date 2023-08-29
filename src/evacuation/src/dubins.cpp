@@ -10,7 +10,7 @@
 
 #include "dubins.hpp"
 #include "utils.hpp"
-#include "models.hpp"
+#include "environment.hpp"
 
 #include <iostream>
 #include <cfloat>

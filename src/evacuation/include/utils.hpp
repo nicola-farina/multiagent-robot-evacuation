@@ -15,7 +15,7 @@
 #include <cmath>
 #include <vector>
 #include <cstddef>
-#include "models.hpp"
+#include "environment.hpp"
 
 namespace dubins
 {

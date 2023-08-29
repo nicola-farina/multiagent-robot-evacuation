@@ -2,63 +2,53 @@
 // Created by luca on 18/08/23.
 //
 
-#ifndef INITIAL_FILE_VGRPAH_H
-#define INITIAL_FILE_VGRPAH_H
+#ifndef VGRAPH_HPP
+#define VGRAPH_HPP
 
 #include <vector>
-#include "models.hpp"
 #include <map>
+#include "environment.hpp"
 
-
-namespace vgraph {
-
-    struct Node {
-        Point position;
-
-        explicit Node(Point position) : position(position) {}
-    };
-
-
-    struct AdjacentNode {
-        Point point;
-        double distance;
-
-        AdjacentNode(Point point, double distance) : point(point), distance(distance) {}
-    };
-
-    struct Edge {
-        Node start;
-        Node end;
-        double weight;
-
-        Edge(Node start, Node end, double weight = 0) : start(start), end(end), weight(weight) {}
-    };
-
+namespace evacuation::vgraph {
     class VGraph {
     public:
         VGraph(std::vector<Robot> robots, std::vector<Polygon> obstacles, Pose gate);
 
-        bool intersectsObstacle(Point start, Point end, const std::vector<Polygon> &obstacles);
+        static bool intersectsObstacle(Point start, Point end, const std::vector<Polygon> &obstacles);
 
-        bool intersectsLine(Point p1, Point p2, Polygon obstacle);
+        static bool intersectsLine(Point p1, Point p2, Polygon obstacle);
 
-        bool lineIntersectsSegment(Point p1, Point q1, Point p2, Point q2);
+        static bool lineIntersectsSegment(Point p1, Point q1, Point p2, Point q2);
 
-        bool onSegment(Point p, Point q, Point r);
+        static bool onSegment(Point p, Point q, Point r);
 
-        int orientation(Point p, Point q, Point r);
+        static int orientation(Point p, Point q, Point r);
 
         std::vector<Point> shortestPath(Point origin, Point destination);
 
     private:
-        std::vector<Node> nodes;
+        struct AdjacentPoint {
+            Point point;
+            double distance;
+
+            AdjacentPoint(Point point, double distance) : point(point), distance(distance) {}
+        };
+
+        struct Edge {
+            Point start;
+            Point end;
+            double weight;
+
+            Edge(Point start, Point end, double weight = 0) : start(start), end(end), weight(weight) {}
+        };
+
+        std::vector<Point> nodes;
         std::vector<Edge> edges;
         std::vector<Robot> robots;
         std::vector<Polygon> obstacles;
         Polygon map;
-        std::map<Point, std::vector<AdjacentNode>> adj;
+        std::map<Point, std::vector<AdjacentPoint>> adj;
     };
 }
 
-
-#endif //INITIAL_FILE_VGRPAH_H
+#endif
