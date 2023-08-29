@@ -8,7 +8,8 @@
  *
  */
 
-#include "utils.hpp"
+#include <valarray>
+#include "dubins_utils.hpp"
 
 namespace dubins {
 

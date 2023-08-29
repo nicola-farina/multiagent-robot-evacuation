@@ -279,7 +279,6 @@ namespace dubins {
             bool valid = areCurvesValid(best_curve_segments, ksigns[pidx][0] * scaled_parameters->scaled_k_max, ksigns[pidx][1] * scaled_parameters->scaled_k_max, ksigns[pidx][2] * scaled_parameters->scaled_k_max,
                                         scaled_parameters->scaled_th0, scaled_parameters->scaled_thf);
             if (!valid) {
-                std::cout << "NOT VALID!!\n\n";
                 delete curve;
                 curve = nullptr;
             }
@@ -578,7 +577,6 @@ namespace dubins {
         }
         // If it is not possible to find a path between the last two points, a curve cannot be defined.
         if (!isThereAPath) {
-            std::cout << "NOT FOUND A PATH FOR LAST CURVE\n";
             return nullptr;
         }
 

@@ -30,7 +30,7 @@ add_executable(evacuation
         src/dubins.cpp
         src/environment.cpp
         src/vgraph.cpp
-        src/utils.cpp
+        src/dubins_utils.cpp
 )
 
 ament_target_dependencies(evacuation

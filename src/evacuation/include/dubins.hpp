@@ -1,10 +1,10 @@
 #ifndef DUBINS_HPP
 #define DUBINS_HPP
 
-#include "utils.hpp"
+#include "dubins_utils.hpp"
 #include "environment.hpp"
 #include <vector>
-#include <iostream>
+#include <valarray>
 
 
 namespace dubins {

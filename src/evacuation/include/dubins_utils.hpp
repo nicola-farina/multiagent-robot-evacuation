@@ -8,14 +8,9 @@
  *
  */
 
-#ifndef UTILS_HPP
-#define UTILS_HPP
+#ifndef DUBINS_UTILS_HPP
+#define DUBINS_UTILS_HPP
 
-#define _USE_MATH_DEFINES
-
-#include <cmath>
-#include <vector>
-#include <cstddef>
 #include "environment.hpp"
 
 namespace dubins {
