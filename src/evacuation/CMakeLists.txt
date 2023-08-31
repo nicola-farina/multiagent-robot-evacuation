@@ -33,6 +33,7 @@ add_executable(evacuation
         src/dubins_utils.cpp
         src/coordination.cpp
         src/angle_utils.cpp
+        src/convex_hull.cpp
 )
 
 ament_target_dependencies(evacuation

@@ -14,9 +14,9 @@ namespace evacuation::vgraph {
     public:
         VGraph(std::vector<Robot> robots, std::vector<Polygon> obstacles, Pose gate);
 
-        static bool intersectsObstacle(Point start, Point end, const std::vector<Polygon> &obstacles);
+        static bool intersectsObstacles(Point start, Point end, const std::vector<Polygon> &obstacles);
 
-        static bool intersectsLine(Point p1, Point p2, Polygon obstacle);
+        static bool intersectsObstacle(Point p1, Point p2, Polygon obstacle);
 
         static bool lineIntersectsSegment(Point p1, Point q1, Point p2, Point q2);
 

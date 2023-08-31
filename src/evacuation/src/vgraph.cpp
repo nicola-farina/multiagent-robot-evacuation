@@ -33,7 +33,7 @@ namespace evacuation::vgraph {
                 if (i < j) {
                     Robot robot = robots[i];
                     Robot otherRobot = robots[j];
-                    if (!intersectsObstacle(robot.getPosition(), otherRobot.getPosition(), obstacles)) {
+                    if (!intersectsObstacles(robot.getPosition(), otherRobot.getPosition(), obstacles)) {
                         double distance = sqrt(pow(robot.getPosition().x - otherRobot.getPosition().x, 2) + pow(robot.getPosition().y - otherRobot.getPosition().y, 2));
                         edges.emplace_back(robot.getPosition(), otherRobot.getPosition(), distance);
                         adj[robot.getPosition()].emplace_back(otherRobot.getPosition(), distance);
@@ -45,7 +45,7 @@ namespace evacuation::vgraph {
 
         // Compute the edges between robots and gate
         for (const Robot &robot: robots) {
-            if (!intersectsObstacle(robot.pose.position, gate.position, obstacles)) {
+            if (!intersectsObstacles(robot.pose.position, gate.position, obstacles)) {
                 double distance = sqrt(pow(robot.pose.position.x - gate.position.x, 2) + pow(robot.pose.position.y - gate.position.y, 2));
                 edges.emplace_back(robot.pose.position, gate.position, distance);
                 adj[robot.pose.position].emplace_back(gate.position, distance);
@@ -57,7 +57,7 @@ namespace evacuation::vgraph {
         for (const Robot &robot: robots) {
             for (const Polygon &obstacle: obstacles) {
                 for (Point point: obstacle.points) {
-                    if (!intersectsObstacle(robot.pose.position, point, obstacles)) {
+                    if (!intersectsObstacles(robot.pose.position, point, obstacles)) {
                         double distance = sqrt(pow(robot.pose.position.x - point.x, 2) + pow(robot.pose.position.y - point.y, 2));
                         edges.emplace_back(robot.pose.position, point, distance);
                         adj[robot.pose.position].emplace_back(point, distance);
@@ -87,7 +87,7 @@ namespace evacuation::vgraph {
                     Polygon otherObstacle = obstacles[j];
                     for (Point point: obstacle.points) {
                         for (Point otherPoint: otherObstacle.points) {
-                            if (!intersectsObstacle(point, otherPoint, obstacles)) {
+                            if (!intersectsObstacles(point, otherPoint, obstacles)) {
                                 double distance = sqrt(pow(point.x - otherPoint.x, 2) + pow(point.y - otherPoint.y, 2));
                                 edges.emplace_back(point, otherPoint, distance);
                                 adj[point].emplace_back(otherPoint, distance);
@@ -102,7 +102,7 @@ namespace evacuation::vgraph {
         // Compute the edges between gate and obstacles
         for (const Polygon &obstacle: obstacles) {
             for (Point point: obstacle.points) {
-                if (!intersectsObstacle(point, gate.position, obstacles)) {
+                if (!intersectsObstacles(point, gate.position, obstacles)) {
                     double distance = sqrt(pow(point.x - gate.position.x, 2) + pow(point.y - gate.position.y, 2));
                     edges.emplace_back(point, gate.position, distance);
                     adj[point].emplace_back(gate.position, distance);
@@ -112,15 +112,14 @@ namespace evacuation::vgraph {
         }
     }
 
-    bool VGraph::intersectsObstacle(Point start, Point end, const std::vector<Polygon> &obstacles) {
+    bool VGraph::intersectsObstacles(Point start, Point end, const std::vector<Polygon> &obstacles) {
         return std::any_of(
                 obstacles.begin(), obstacles.end(),
-                [&start, &end](const Polygon &obstacle) { return intersectsLine(start, end, obstacle); }
+                [&start, &end](const Polygon &obstacle) { return intersectsObstacle(start, end, obstacle); }
         );
     }
 
-
-    bool VGraph::intersectsLine(Point p1, Point p2, Polygon obstacle) {
+    bool VGraph::intersectsObstacle(Point p1, Point p2, Polygon obstacle) {
         for (std::vector<Point> edge: obstacle.getPolygonEdges()) {
             if (p1 == edge[0] || p1 == edge[1] || p2 == edge[0] || p2 == edge[1]) {
                 continue;

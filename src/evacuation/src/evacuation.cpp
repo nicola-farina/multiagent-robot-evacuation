@@ -26,7 +26,7 @@
 #include "tf2_ros/buffer.h"
 #include "tf2/convert.h"
 #include "angle_utils.hpp"
-#include <tf2/LinearMath/Matrix3x3.h>
+#include "convex_hull.hpp"
 
 using namespace std::chrono_literals;
 using namespace evacuation;
@@ -139,9 +139,16 @@ public:
         vector<Polygon> polygonsForVisgraph;
         vector<Polygon> polygonsForDubins;
         vector<vector<Polygon>> pols = ClipperLibExtensions::enlargeAndJoinObstacles(env.getObstacles(), robotRadius);
-        polygonsForVisgraph = pols[0];
+        polygonsForVisgraph = convex::getConvexHull(pols[0]);
         polygonsForDubins = pols[1];
-        polygonsForDubins.push_back(map);
+
+        // Offset map. For visibility graph we use a larger offset (for safety margin)
+        Polygon mapForVisgraph, mapForDubins;
+        vector<Polygon> maps = ClipperLibExtensions::enlargeObstaclesWithTwoOffsets(map, -robotRadius);
+        mapForVisgraph = maps[0];
+        mapForDubins = maps[1];
+        polygonsForDubins.push_back(mapForDubins);
+        polygonsForVisgraph.push_back(mapForVisgraph);
 
         VGraph visGraph(robots, polygonsForVisgraph, gate);
         vector<vector<coordination::PoseForCoordination>> paths;
