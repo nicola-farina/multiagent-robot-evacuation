@@ -3,6 +3,7 @@
 #include <utility>
 #include <tf2/LinearMath/Quaternion.h>
 #include "clipper.hpp"
+#include "angle_utils.hpp"
 
 namespace evacuation {
     Point::Point() = default;
@@ -22,19 +23,13 @@ namespace evacuation {
     Pose::Pose(double x, double y, double th) : position(Point(x, y)), th(th) {}
 
     geometry_msgs::msg::PoseStamped Pose::toPoseStamped(rclcpp::Time time, std::string frameId) const {
-        tf2::Quaternion quaternion;
-        quaternion.setRPY(0, 0, th);
-
         geometry_msgs::msg::PoseStamped stamped;
         stamped.header.stamp = time;
         stamped.header.frame_id = std::move(frameId);
         stamped.pose.position.x = position.x;
         stamped.pose.position.y = position.y;
         stamped.pose.position.z = 0.0;
-        stamped.pose.orientation.x = quaternion.getX();
-        stamped.pose.orientation.y = quaternion.getY();
-        stamped.pose.orientation.z = quaternion.getZ();
-        stamped.pose.orientation.w = quaternion.getW();
+        stamped.pose.orientation = angle::yawToQuaternionMsg(th);
         return stamped;
     }
 

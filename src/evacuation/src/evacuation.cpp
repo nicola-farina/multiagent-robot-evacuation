@@ -25,6 +25,7 @@
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
 #include "tf2/convert.h"
+#include "angle_utils.hpp"
 #include <tf2/LinearMath/Matrix3x3.h>
 
 using namespace std::chrono_literals;
@@ -120,21 +121,16 @@ public:
         RCLCPP_INFO(this->get_logger(), "Map converted successfully!");
 
         RCLCPP_INFO(this->get_logger(), "Converting gate...");
-        tf2::Quaternion gateQuaternion;
-        gateQuaternion.setX(gateData.poses[0].orientation.x);
-        gateQuaternion.setY(gateData.poses[0].orientation.y);
-        gateQuaternion.setZ(gateData.poses[0].orientation.z);
-        gateQuaternion.setW(gateData.poses[0].orientation.w);
-        tf2::Matrix3x3 gateQuaternionMatrix(gateQuaternion);
-        double roll, pitch, yaw;
-        gateQuaternionMatrix.getRPY(roll, pitch, yaw);
-        Pose gate = Pose(gateData.poses[0].position.x, gateData.poses[0].position.y, yaw);
+        std::cout << "YAW GATE ORIENTATION: " << gateData.poses[0].orientation.x << "," << gateData.poses[0].orientation.y << "," << gateData.poses[0].orientation.z << "," << gateData.poses[0].orientation.w << std::endl;
+        double zAngle = angle::quaternionMsgToYaw(gateData.poses[0].orientation);
+        std::cout << "YAW GATE READ: " << zAngle << std::endl;
+        Pose gate = Pose(gateData.poses[0].position.x, gateData.poses[0].position.y, zAngle);
         RCLCPP_INFO(this->get_logger(), "Gate converted successfully!");
 
         RCLCPP_INFO(this->get_logger(), "Reading robots initial poses...");
-        shelfino1.pose = Pose{shelfino1Transform.transform.translation.x, shelfino1Transform.transform.translation.y, shelfino1Transform.transform.rotation.z};
-        shelfino2.pose = Pose{shelfino2Transform.transform.translation.x, shelfino2Transform.transform.translation.y, shelfino2Transform.transform.rotation.z};
-        shelfino3.pose = Pose{shelfino3Transform.transform.translation.x, shelfino3Transform.transform.translation.y, shelfino3Transform.transform.rotation.z};
+        shelfino1.pose = Pose{shelfino1Transform.transform.translation.x, shelfino1Transform.transform.translation.y, angle::quaternionMsgToYaw(shelfino1Transform.transform.rotation)};
+        shelfino2.pose = Pose{shelfino2Transform.transform.translation.x, shelfino2Transform.transform.translation.y, angle::quaternionMsgToYaw(shelfino2Transform.transform.rotation)};
+        shelfino3.pose = Pose{shelfino3Transform.transform.translation.x, shelfino3Transform.transform.translation.y, angle::quaternionMsgToYaw(shelfino3Transform.transform.rotation)};
         vector<Robot> robots = {shelfino1, shelfino2, shelfino3};
         RCLCPP_INFO(this->get_logger(), "Robots initial poses read successfully!");
 
@@ -187,11 +183,16 @@ public:
             nav_msgs::msg::Path navPath;
             coordination::RobotCoordination robotCoordination = safePaths[robot.id - 1];
             sleep((int) robotCoordination.timeToWait);
+            int tmp = 0;
             for (Pose p: robotCoordination.path) {
                 navPath.poses.push_back(p.toPoseStamped(this->get_clock()->now(), "map"));
+                tmp++;
             }
+            tmp--;
             navPath.header.stamp = this->get_clock()->now();
             navPath.header.frame_id = "map";
+
+            std::cout << "YAW GATE PATH: " << robotCoordination.path[tmp].th << std::endl;
 
             auto goalMsg = nav2_msgs::action::FollowPath::Goal();
             goalMsg.path = navPath;

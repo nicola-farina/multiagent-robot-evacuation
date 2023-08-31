@@ -32,6 +32,7 @@ add_executable(evacuation
         src/vgraph.cpp
         src/dubins_utils.cpp
         src/coordination.cpp
+        src/angle_utils.cpp
 )
 
 ament_target_dependencies(evacuation
