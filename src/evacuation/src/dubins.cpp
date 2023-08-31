@@ -4,6 +4,7 @@
 #include "dubins.hpp"
 
 using namespace evacuation;
+using namespace coordination;
 using std::vector;
 
 namespace dubins {
@@ -815,15 +816,18 @@ namespace dubins {
         return nullptr;
     }
 
-    vector <Pose> Dubins::interpolateCurves(Curve **curves, int size, int points_per_arc) {
-        vector<Pose> totLine;
+    vector <coordination::PoseForCoordination> Dubins::interpolateCurves(Curve **curves, int size, int points_per_arc) {
+        vector<coordination::PoseForCoordination> totLine;
+        double distanceFromInitial = 0;
         for (int i = 0; i < size; i++) {
             Curve *curve = curves[i];
 
-            vector<Pose> line1 = interpolateArc(curve->a1, points_per_arc);
-            vector<Pose> line2 = interpolateArc(curve->a2, points_per_arc);
-            vector<Pose> line3 = interpolateArc(curve->a3, points_per_arc);
-
+            vector<coordination::PoseForCoordination> line1 = inteorpolateArc(curve->a1, points_per_arc, distanceFromInitial);
+            distanceFromInitial += curve->a1->L;
+            vector<coordination::PoseForCoordination> line2 = interpolateArc(curve->a2, pints_per_arc, distanceFromInitial);
+            distanceFromInitial += curve->a2->L;
+            vector<coordination::PoseForCoordination> line3 = interpolateArc(curve->a3, points_per_arc, distanceFromInitial);
+            distanceFromInitial += curve->a3->L;
 
             totLine.insert(totLine.end(), line1.begin(), line1.end());
             totLine.insert(totLine.end(), line2.begin(), line2.end());
@@ -832,8 +836,8 @@ namespace dubins {
         return totLine;
     }
 
-    vector <Pose> Dubins::interpolateArc(Arc *arc, int num_points) {
-        vector<Pose> poses;
+    vector <coordination::PoseForCoordination> Dubins::interpolateArc(Arc *arc, int num_points, double distanceFromInitial) {
+        vector<coordination::PoseForCoordination> poses;
 
         for (int j = 0; j < num_points; j++) {
 
@@ -841,7 +845,7 @@ namespace dubins {
 
             Line line(s, arc->x0, arc->y0, arc->th0, arc->k);
 
-            poses.emplace_back(line.x, line.y, line.th);
+            poses.emplace_back(line.x, line.y, line.th, distanceFromInitial + s);
         }
 
         return poses;

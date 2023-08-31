@@ -3,6 +3,7 @@
 
 #include "dubins_utils.hpp"
 #include "environment.hpp"
+#include "coordination.h"
 #include <vector>
 #include <valarray>
 
@@ -152,7 +153,7 @@ namespace dubins {
 
         Curve **multipointShortestPath(DubinsPoint **points, int numberOfPoints, const std::vector<evacuation::Polygon> &obstacles, const evacuation::Polygon &map);
 
-        static std::vector<evacuation::Pose> interpolateCurves(Curve **curves, int size, int points_per_arc);
+        static std::vector<coordination::PoseForCoordination> interpolateCurves(Curve **curves, int size, int points_per_arc);
 
     private:
         /**
@@ -252,7 +253,7 @@ namespace dubins {
 
         static CurveSegmentsResult *curveLRL(double scaled_th0, double scaled_thf, double scaled_k_max);
 
-        static std::vector<evacuation::Pose> interpolateArc(Arc *arc, int num_points);
+        static std::vector<coordination::PoseForCoordination> interpolateArc(Arc *arc, int num_points);
     };
 }
 

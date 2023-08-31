@@ -16,6 +16,7 @@
 #include "vgraph.hpp"
 #include "dubins.hpp"
 #include "dubins_utils.hpp"
+#include "coordination.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "nav2_msgs/action/follow_path.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
@@ -141,7 +142,7 @@ public:
         polygonsForDubins.push_back(map);
 
         VGraph visGraph(robots, polygonsForVisgraph, gate);
-        vector<vector<Pose>> paths;
+        vector<vector<coordination::PoseForCoordination>> paths;
         for (Robot robot: robots) {
             // Compute the shortest path using visibility graph
             vector<Point> path = visGraph.shortestPath(robot.getPosition(), gate.position);
@@ -163,7 +164,7 @@ public:
         }
 
         // ========= AVOID ROBOT COLLISIONS =========
-        // vector<vector<Point>> finalPointsSafe = getPathsWithoutRobotCollisions(finalPoints[0], finalPoints[1], finalPoints[2]);
+         vector<coordination::RobotCoordination> finalPoints = coordination::getPathsWithoutRobotCollisions(finalPoints[0], finalPoints[1], finalPoints[2]);
 
         // ========= PUBLISH PATHS =========
         // Wait for all action servers to be available
@@ -175,7 +176,9 @@ public:
         for (Robot robot: robots) {
             RCLCPP_INFO(this->get_logger(), "[%s] Sending goal...", robot.getName().c_str());
             nav_msgs::msg::Path navPath;
-            for (Pose p: paths[robot.id - 1]) {
+            coordination::RobotCoordination robotCoordination = finalPoints[robot.id - 1];
+            sleep(robotCoordination.timeToWait);
+            for (Pose p: robotCoordination[robot.id - 1].pose) {
                 navPath.poses.push_back(p.toPoseStamped(this->get_clock()->now(), "map"));
             }
             navPath.header.stamp = this->get_clock()->now();
@@ -203,7 +206,7 @@ public:
     }
 
 private:
-    double robotRadius = 0.3;
+    double robotRadius = 0.5;
     Robot shelfino1;
     Robot shelfino2;
     Robot shelfino3;

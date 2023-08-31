@@ -4,130 +4,149 @@
 
 #include <valarray>
 #include "coordination.h"
+#include <cmath>
 
 using evacuation::Pose;
 using std::vector;
 
 namespace coordination {
 
-    vector<vector<Pose>> getPathsWithoutRobotCollisions(vector<Pose> path1, vector<Pose> path2, vector<Pose> path3, double robotRadius) {
-        bool path1_finished = false;
-        bool path2_finished = false;
-        bool path3_finished = false;
-        int path1_index = 0;
-        int path2_index = 0;
-        int path3_index = 0;
-        bool p1IntersectP2 = false;
-        bool p1IntersectP3 = false;
-        bool p2IntersectP3 = false;
-        vector<Pose> safePath1;
-        vector<Pose> safePath2;
-        vector<Pose> safePath3;
-        while (!path1_finished || !path2_finished || !path3_finished) {
-            // Check if path1 in position path1_index intersects with path2 in position path2_index only if path1 is not finished
-            if (!path1_finished) {
-                Pose p1 = path1[path1_index];
-                if (!path2_finished) {
-                    Pose p2 = path2[path2_index];
-                    if (!intersect(p1, p2, robotRadius)) {
-                        // P1 does not intersect P2. Now, P3 must be checked to consider P1 safe
-                        p1IntersectP2 = false;
-                        if (!path3_finished) {
-                            Pose p3 = path3[path3_index];
-                            if (!intersect(p1, p3, robotRadius)) {
-                                // P1 does not intersect P3. Now, P2 must be checked to consider P1 safe
-                                p1IntersectP3 = false;
-                            } else {
-                                // P1 intersects P3.
-                                p1IntersectP3 = true;
-                            }
-                        } else {
-                            // P3 is finished. Now, P2 must be checked to consider P1 safe
-                            p1IntersectP3 = false;
-                        }
-                    } else {
-                        // P1 intersects P2.
-                        p1IntersectP2 = true;
-                    }
-                } else {
-                    // P2 is finished. Now, P3 must be checked to consider P1 safe
-                    p1IntersectP2 = false;
-                    if (!path3_finished) {
-                        Pose p3 = path3[path3_index];
-                        if (!intersect(p1, p3, robotRadius)) {
-                            // P1 does not intersect P3.
-                            p1IntersectP3 = false;
-                        } else {
-                            // P1 intersects P3.
-                            p1IntersectP3 = true;
-                        }
-                    } else {
-                        // P3 is finished. Now, P2 must be checked to consider P1 safe
-                        p1IntersectP3 = false;
-                    }
-                }
-            }
+    PoseForCoordination::PoseForCoordination() = default;
 
-            if (!path2_finished) {
-                Pose p2 = path2[path2_index];
-                if (!path3_finished) {
-                    Pose p3 = path3[path3_index];
-                    if (!intersect(p2, p3, robotRadius)) {
-                        // P2 does not intersect P3.
-                        p2IntersectP3 = false;
-                    } else {
-                        // P2 intersects P3.
-                        p2IntersectP3 = true;
-                    }
-                } else {
-                    // P3 is finished.
-                    p2IntersectP3 = false;
-                }
-            }
+    PoseForCoordination::PoseForCoordination(double x, double y, double th, double distanceFromInitial) : pose(Pose(Point(x, y), th)), distanceFromInitial(distanceFromInitial) {}
 
-            if (!path1_finished) {
-                safePath1.push_back(path1[path1_index]);
-                path1_index++;
-            } else {
-                p1IntersectP2 = false;
-                p1IntersectP3 = false;
-            }
-            if (!path2_finished) {
-                if (p1IntersectP2) {
-                    safePath2.push_back(path2[path2_index - 1]); // It raise exception only if the first points of the paths intersect. It means that they spawn directly with collision.
-                } else {
-                    safePath2.push_back(path2[path2_index]);
-                    path2_index++;
-                }
-            } else {
-                p2IntersectP3 = false;
-            }
-            if (!path3_finished) {
-                if (p1IntersectP3) {
-                    safePath3.push_back(path3[path3_index - 1]); // It raise exception only if the first points of the paths intersect. It means that they spawn directly with collision.
-                } else if (p2IntersectP3) {
-                    safePath3.push_back(path3[path3_index - 1]); // It raise exception only if the first points of the paths intersect. It means that they spawn directly with collision.
-                } else {
-                    safePath3.push_back(path3[path3_index]);
-                    path3_index++;
-                }
-            }
+    PoseForCoordination::PoseForCoordination(evacuation::Pose pose, double distanceFromInitial) : pose(pose), distanceFromInitial(distanceFromInitial) {}
 
-            if (path1_index == int(path1.size())) {
-                path1_finished = true;
-            }
-            if (path2_index == int(path2.size())) {
-                path2_finished = true;
-            }
-            if (path3_index == int(path3.size())) {
-                path3_finished = true;
+    PoseForCoordination::getPose() const {
+        return pose;
+    }
+
+    geometry_msgs::msg::PoseStamped Pose::toPoseStamped(rclcpp::Time time, std::string frameId) const {
+        geometry_msgs::msg::PoseStamped stamped;
+        stamped.header.stamp = time;
+        stamped.header.frame_id = std::move(frameId);
+        stamped.pose.position.x = position.x;
+        stamped.pose.position.y = position.y;
+        stamped.pose.position.z = 0.0;
+        stamped.pose.orientation.x = 0.0;
+        stamped.pose.orientation.y = 0.0;
+        stamped.pose.orientation.z = th;
+        stamped.pose.orientation.w = 1.0;
+        return stamped;
+    }
+
+    vector<RobotCoordination> getPathsWithoutRobotCollisions(vector<PoseForCoordination> path1, vector<PoseForCoordinationPoseForCoordination> path2, vector<PoseForCoordination> path3, double robotRadius) {
+        double timeToWait = 1.0;
+        std::vector<std::vector<PoseForCoordination>> intersectionRobot1Robot2;
+        std::vector<std::vector<PoseForCoordination>> intersectionRobot1Robot3;
+        std::vector<std::vector<PoseForCoordination>> intersectionRobot2Robot3;
+
+        for(PoseForCoordination pose1: path1) {
+            for(PoseForCoordination pose2: path1) {
+                if(intersect(pose1.getPose(), pose2.getPose(), robotRadius)) {
+                    intersectionRobot1Robot2.push_back({pose1, pose2});
+                }
             }
         }
-        vector<vector<Pose>> safePaths;
-        safePaths.push_back(safePath1);
-        safePaths.push_back(safePath2);
-        safePaths.push_back(safePath3);
-        return safePaths;
+
+        for(PoseForCoordination pose2: path2) {
+            for(PoseForCoordination pose3: path3) {
+                if(intersect(pose2.getPose(), pose3.getPose(), robotRadius)) {
+                    intersectionRobot2Robot3.push_back({pose2, pose3});
+                }
+            }
+        }
+
+        for(PoseForCoordination pose1: path1) {
+            for(PoseForCoordination pose3: path3) {
+                if(intersect(pose1.getPose(), pose3.getPose(), robotRadius)) {
+                    intersectionRobot1Robot3.push_back({pose1, pose3});
+                }
+            }
+        }
+
+        bool robot1Robot2CollisionChecked = false;
+        bool robot1Robot3CollisionChecked = false;
+        bool robot2Robot3CollisionChecked = false;
+        double robot1WaitTime = 0.0;
+        double robot2WaitTime = 0.0;
+        double robot3WaitTime = 0.0;
+        bool collisionTimesFound = false;
+        while(!collisionTimesFound) {
+            if(!robot1Robot2CollisionChecked) {
+                collisions = true;
+                while(collisions) {
+                    bool broken = false;
+                    for(std::vector<PoseForCoordination> intersection: intersectionRobot1Robot2) {
+                        if (intersectAtSameTime(intersection[0], intersection[1], robot1WaitTime, robot2WaitTime)) {
+                            robot2WaitTime += timeToWait;
+                            robot2Robot3CollisionChecked = false;
+                            broken = true;
+                            break;
+                        }
+                    }
+                    if(!broken) {
+                        collisions = false;
+                        robot1Robot2CollisionChecked = true;
+                    }
+                }
+            }
+            if(!robot1Robot3CollisionChecked) {
+                collisions = true;
+                while(collisions) {
+                    bool broken = false;
+                    for(std::vector<PoseForCoordination> intersection: intersectionRobot1Robot3) {
+                        if (intersectAtSameTime(intersection[0], intersection[1], robot1WaitTime, robot3WaitTime)) {
+                            robot3WaitTime += timeToWait;
+                            robot2Robot3CollisionChecked = false;
+                            broken = true;
+                            break;
+                        }
+                    }
+                    if(!broken) {
+                        collisions = false;
+                        robot1Robot3CollisionChecked = true;
+                    }
+                }
+            }
+            if(!robot2Robot3CollisionChecked) {
+                collisions = true;
+                while(collisions) {
+                    bool broken = false;
+                    for(std::vector<PoseForCoordination> intersection: intersectionRobot2Robot3) {
+                        if (intersectAtSameTime(intersection[0], intersection[1], robot2WaitTime, robot3WaitTime)) {
+                            robot3WaitTime += timeToWait;
+                            robot1Robot3CollisionChecked = false;
+                            broken = true;
+                            break;
+                        }
+                    }
+                    if(!broken) {
+                        collisions = false;
+                        robot2Robot3CollisionChecked = true;
+                    }
+                }
+            }
+            if(robot1Robot2CollisionChecked && robot1Robot3CollisionChecked && robot2Robot3CollisionChecked) {
+                collisionTimesFound = true;
+            }
+        }
+        std::vector<Pose> path1Poses;
+        for(PoseForCoordination pose: path1) {
+            path1Poses.push_back(pose.getPose());
+        }
+        RobotCoordination result1 = RobotCoordination(path1Poses, robot1WaitTime);
+        std::vector<Pose> path2Poses;
+        for(PoseForCoordination pose: path2) {
+            path2Poses.push_back(pose.getPose());
+        }
+        RobotCoordination result2 = RobotCoordination(path2Poses, robot2WaitTime);
+        std::vector<Pose> path3Poses;
+        for(PoseForCoordination pose: path3) {
+            path3Poses.push_back(pose.getPose());
+        }
+        RobotCoordination result3 = RobotCoordination(path3Poses, robot3WaitTime);
+        return {result1, result2, result3};
     }
 
     bool intersect(Pose p1, Pose p2, double robotRadius) {
@@ -136,4 +155,16 @@ namespace coordination {
         return val >= 0 && val <= std::pow((robotRadius * 2), 2);
     }
 
+    bool intersectAtSameTime(PoseForCoordination p1, PoseForCoordination p2, double robot1WaitTime, double robot2WaitTime) {
+        double robotSize = 0.5;
+        double offset = 0.1;
+        double spaceWait = 0.3;
+        bool result = false;
+        double p1WithTime = p1.distanceFromInitial + robot1WaitTime * spaceWait;
+        double p2WithTime = p2.distanceFromInitial + robot2WaitTime * spaceWait;
+        if(std::abs(p1WithTime - p2WithTime) <= robotSize + offset) {
+            result = true;
+        }
+        return result;
+    }
 }
