@@ -5,6 +5,7 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include "angle_utils.hpp"
+#include <iostream>
 
 namespace angle {
     double quaternionMsgToYaw(geometry_msgs::msg::Quaternion quaternionMsg) {
@@ -22,7 +23,7 @@ namespace angle {
 
     geometry_msgs::msg::Quaternion yawToQuaternionMsg(double yaw) {
         tf2::Quaternion quaternion;
-        quaternion.setRPY(0, 0, yaw);
+        quaternion.setRPY(0, 0, yaw - (M_PI / 2.0));
         quaternion.normalize();
 
         geometry_msgs::msg::Quaternion msg;

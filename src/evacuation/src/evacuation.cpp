@@ -121,10 +121,7 @@ public:
         RCLCPP_INFO(this->get_logger(), "Map converted successfully!");
 
         RCLCPP_INFO(this->get_logger(), "Converting gate...");
-        std::cout << "YAW GATE ORIENTATION: " << gateData.poses[0].orientation.x << "," << gateData.poses[0].orientation.y << "," << gateData.poses[0].orientation.z << "," << gateData.poses[0].orientation.w << std::endl;
-        double zAngle = angle::quaternionMsgToYaw(gateData.poses[0].orientation);
-        std::cout << "YAW GATE READ: " << zAngle << std::endl;
-        Pose gate = Pose(gateData.poses[0].position.x, gateData.poses[0].position.y, zAngle);
+        Pose gate = Pose(gateData.poses[0].position.x, gateData.poses[0].position.y, angle::quaternionMsgToYaw(gateData.poses[0].orientation));
         RCLCPP_INFO(this->get_logger(), "Gate converted successfully!");
 
         RCLCPP_INFO(this->get_logger(), "Reading robots initial poses...");
@@ -183,16 +180,11 @@ public:
             nav_msgs::msg::Path navPath;
             coordination::RobotCoordination robotCoordination = safePaths[robot.id - 1];
             sleep((int) robotCoordination.timeToWait);
-            int tmp = 0;
             for (Pose p: robotCoordination.path) {
                 navPath.poses.push_back(p.toPoseStamped(this->get_clock()->now(), "map"));
-                tmp++;
             }
-            tmp--;
             navPath.header.stamp = this->get_clock()->now();
             navPath.header.frame_id = "map";
-
-            std::cout << "YAW GATE PATH: " << robotCoordination.path[tmp].th << std::endl;
 
             auto goalMsg = nav2_msgs::action::FollowPath::Goal();
             goalMsg.path = navPath;
@@ -216,7 +208,7 @@ public:
     }
 
 private:
-    double robotRadius = 0.5;
+    double robotRadius = 0.3;
     Robot shelfino1;
     Robot shelfino2;
     Robot shelfino3;
