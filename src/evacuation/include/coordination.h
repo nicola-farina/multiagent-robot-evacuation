@@ -25,6 +25,8 @@ namespace coordination {
     struct RobotCoordination {
         std::vector<evacuation::Pose> path;
         double timeToWait;
+
+        RobotCoordination(std::vector<evacuation::Pose> path, double timeToWait);
     };
 
     std::vector<RobotCoordination> getPathsWithoutRobotCollisions(std::vector<PoseForCoordination> path1, std::vector<PoseForCoordination> path2, std::vector<PoseForCoordination> path3);

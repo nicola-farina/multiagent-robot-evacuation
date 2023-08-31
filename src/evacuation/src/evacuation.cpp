@@ -164,7 +164,7 @@ public:
         }
 
         // ========= AVOID ROBOT COLLISIONS =========
-         vector<coordination::RobotCoordination> finalPoints = coordination::getPathsWithoutRobotCollisions(finalPoints[0], finalPoints[1], finalPoints[2]);
+         vector<coordination::RobotCoordination> safePaths = coordination::getPathsWithoutRobotCollisions(paths[0], paths[1], paths[2]);
 
         // ========= PUBLISH PATHS =========
         // Wait for all action servers to be available
@@ -176,9 +176,9 @@ public:
         for (Robot robot: robots) {
             RCLCPP_INFO(this->get_logger(), "[%s] Sending goal...", robot.getName().c_str());
             nav_msgs::msg::Path navPath;
-            coordination::RobotCoordination robotCoordination = finalPoints[robot.id - 1];
-            sleep(robotCoordination.timeToWait);
-            for (Pose p: robotCoordination[robot.id - 1].pose) {
+            coordination::RobotCoordination robotCoordination = safePaths[robot.id - 1];
+            sleep((int)robotCoordination.timeToWait);
+            for (Pose p: robotCoordination.path) {
                 navPath.poses.push_back(p.toPoseStamped(this->get_clock()->now(), "map"));
             }
             navPath.header.stamp = this->get_clock()->now();
