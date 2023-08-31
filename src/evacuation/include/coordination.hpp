@@ -2,8 +2,8 @@
 // Created by nicola on 29/08/23.
 //
 
-#ifndef EVACUATION_COORDINATION_H
-#define EVACUATION_COORDINATION_H
+#ifndef EVACUATION_COORDINATION_HPP
+#define EVACUATION_COORDINATION_HPP
 
 #include "environment.hpp"
 
@@ -29,7 +29,7 @@ namespace coordination {
         RobotCoordination(std::vector<evacuation::Pose> path, double timeToWait);
     };
 
-    std::vector<RobotCoordination> getPathsWithoutRobotCollisions(std::vector<PoseForCoordination> path1, std::vector<PoseForCoordination> path2, std::vector<PoseForCoordination> path3);
+    std::vector<RobotCoordination> getPathsWithoutRobotCollisions(std::vector<PoseForCoordination> path1, std::vector<PoseForCoordination> path2, std::vector<PoseForCoordination> path3, double robotRadius);
 
     bool intersect(evacuation::Pose p1, evacuation::Pose p2, double robotRadius);
 

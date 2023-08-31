@@ -3,7 +3,7 @@
 
 #include "dubins_utils.hpp"
 #include "environment.hpp"
-#include "coordination.h"
+#include "coordination.hpp"
 #include <vector>
 #include <valarray>
 
@@ -253,7 +253,7 @@ namespace dubins {
 
         static CurveSegmentsResult *curveLRL(double scaled_th0, double scaled_thf, double scaled_k_max);
 
-        static std::vector<coordination::PoseForCoordination> interpolateArc(Arc *arc, int num_points);
+        static std::vector<coordination::PoseForCoordination> interpolateArc(Arc *arc, int num_points, double distanceFromInitial);
     };
 }
 

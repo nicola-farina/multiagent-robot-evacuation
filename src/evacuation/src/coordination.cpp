@@ -3,7 +3,7 @@
 //
 
 #include <valarray>
-#include "coordination.h"
+#include "coordination.hpp"
 #include <cmath>
 
 using evacuation::Pose;

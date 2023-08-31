@@ -164,7 +164,7 @@ public:
         }
 
         // ========= AVOID ROBOT COLLISIONS =========
-         vector<coordination::RobotCoordination> safePaths = coordination::getPathsWithoutRobotCollisions(paths[0], paths[1], paths[2]);
+         vector<coordination::RobotCoordination> safePaths = coordination::getPathsWithoutRobotCollisions(paths[0], paths[1], paths[2], robotRadius);
 
         // ========= PUBLISH PATHS =========
         // Wait for all action servers to be available

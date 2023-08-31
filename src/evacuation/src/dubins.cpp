@@ -822,9 +822,9 @@ namespace dubins {
         for (int i = 0; i < size; i++) {
             Curve *curve = curves[i];
 
-            vector<coordination::PoseForCoordination> line1 = inteorpolateArc(curve->a1, points_per_arc, distanceFromInitial);
+            vector<coordination::PoseForCoordination> line1 = interpolateArc(curve->a1, points_per_arc, distanceFromInitial);
             distanceFromInitial += curve->a1->L;
-            vector<coordination::PoseForCoordination> line2 = interpolateArc(curve->a2, pints_per_arc, distanceFromInitial);
+            vector<coordination::PoseForCoordination> line2 = interpolateArc(curve->a2, points_per_arc, distanceFromInitial);
             distanceFromInitial += curve->a2->L;
             vector<coordination::PoseForCoordination> line3 = interpolateArc(curve->a3, points_per_arc, distanceFromInitial);
             distanceFromInitial += curve->a3->L;
