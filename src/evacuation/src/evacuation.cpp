@@ -3,7 +3,6 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <cmath>
 
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/polygon.hpp"
@@ -25,6 +24,8 @@
 #include "tf2/exceptions.h"
 #include "tf2_ros/transform_listener.h"
 #include "tf2_ros/buffer.h"
+#include "tf2/convert.h"
+#include <tf2/LinearMath/Matrix3x3.h>
 
 using namespace std::chrono_literals;
 using namespace evacuation;
@@ -119,7 +120,15 @@ public:
         RCLCPP_INFO(this->get_logger(), "Map converted successfully!");
 
         RCLCPP_INFO(this->get_logger(), "Converting gate...");
-        Pose gate = Pose(gateData.poses[0].position.x, gateData.poses[0].position.y, gateData.poses[0].orientation.z);
+        tf2::Quaternion gateQuaternion;
+        gateQuaternion.setX(gateData.poses[0].orientation.x);
+        gateQuaternion.setY(gateData.poses[0].orientation.y);
+        gateQuaternion.setZ(gateData.poses[0].orientation.z);
+        gateQuaternion.setW(gateData.poses[0].orientation.w);
+        tf2::Matrix3x3 gateQuaternionMatrix(gateQuaternion);
+        double roll, pitch, yaw;
+        gateQuaternionMatrix.getRPY(roll, pitch, yaw);
+        Pose gate = Pose(gateData.poses[0].position.x, gateData.poses[0].position.y, yaw);
         RCLCPP_INFO(this->get_logger(), "Gate converted successfully!");
 
         RCLCPP_INFO(this->get_logger(), "Reading robots initial poses...");
@@ -164,7 +173,7 @@ public:
         }
 
         // ========= AVOID ROBOT COLLISIONS =========
-         vector<coordination::RobotCoordination> safePaths = coordination::getPathsWithoutRobotCollisions(paths[0], paths[1], paths[2], robotRadius);
+        vector<coordination::RobotCoordination> safePaths = coordination::getPathsWithoutRobotCollisions(paths[0], paths[1], paths[2], robotRadius);
 
         // ========= PUBLISH PATHS =========
         // Wait for all action servers to be available
@@ -177,7 +186,7 @@ public:
             RCLCPP_INFO(this->get_logger(), "[%s] Sending goal...", robot.getName().c_str());
             nav_msgs::msg::Path navPath;
             coordination::RobotCoordination robotCoordination = safePaths[robot.id - 1];
-            sleep((int)robotCoordination.timeToWait);
+            sleep((int) robotCoordination.timeToWait);
             for (Pose p: robotCoordination.path) {
                 navPath.poses.push_back(p.toPoseStamped(this->get_clock()->now(), "map"));
             }
