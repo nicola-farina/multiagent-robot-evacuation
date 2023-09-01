@@ -175,6 +175,7 @@ public:
                 RCLCPP_INFO(this->get_logger(), "[%s] Path computed!", robot.getName().c_str());
                 paths.push_back(dubins::Dubins::interpolateCurves(curves, path.size() - 1, 100));
             }
+            delete[] points;
         }
 
         // ========= AVOID ROBOT COLLISIONS =========

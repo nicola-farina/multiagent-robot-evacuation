@@ -92,7 +92,6 @@ namespace evacuation {
         return obstacles;
     }
 
-    // TODO check con Luca che sia giusto il 1000
     Polygon Environment::reshapeToMapBoundary(const Polygon &obstacle) {
         // Initialize the Clipper library
         ClipperLib::Clipper clipper;
