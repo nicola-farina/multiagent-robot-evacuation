@@ -200,7 +200,11 @@ namespace evacuation::vgraph {
         while (true) {
             path.push_back(destination);
             if (destination == origin) break;
-            destination = prev.find(destination)->second;
+            auto tmp = prev.find(destination);
+            if (tmp == prev.end()) {
+                return {};
+            }
+            destination = tmp->second;
         }
         // Reverse the path
         reverse(path.begin(), path.end());

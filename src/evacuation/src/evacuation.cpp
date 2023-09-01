@@ -162,6 +162,10 @@ public:
             // Compute the shortest path using visibility graph
             RCLCPP_INFO(this->get_logger(), "Computing shortest path...");
             vector<Point> path = visGraph.shortestPath(robot.getPosition(), gate.position);
+            if (path.empty()) {
+                RCLCPP_INFO(this->get_logger(), "[%s] Path not found!", robot.getName().c_str());
+                rclcpp::shutdown();
+            }
             // Prepare data structure for dubins (only first and last point have orientation)
             auto **points = new dubins::DubinsPoint *[path.size()];
             points[0] = new dubins::DubinsPoint(path[0].x, path[0].y, robot.getOrientation());
@@ -173,7 +177,8 @@ public:
             RCLCPP_INFO(this->get_logger(), "Executing multipoint Dubins...");
             dubins::Curve **curves = dubins.multipointShortestPath(points, path.size(), polygonsForDubins, env.getMap());
             if (curves == nullptr) {
-                RCLCPP_INFO(this->get_logger(), "[%s] Path not found!", robot.getName().c_str());
+                RCLCPP_INFO(this->get_logger(), "[%s] Multipoint Dubins could not find a path!", robot.getName().c_str());
+                rclcpp::shutdown();
             } else {
                 RCLCPP_INFO(this->get_logger(), "[%s] Path computed!", robot.getName().c_str());
                 paths.push_back(dubins::Dubins::interpolateCurves(curves, path.size() - 1, 100));
@@ -255,7 +260,7 @@ private:
     bool gateReceived = false;
     bool evacuationStarted = false;
 
-    double dubinsMaxCurvature = 2.0;
+    double dubinsMaxCurvature = 20.0;
 
     void gateCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg) {
         gateData = *msg;
