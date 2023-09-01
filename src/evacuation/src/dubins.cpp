@@ -789,7 +789,6 @@ namespace dubins {
             for (int i = 0; i < numberOfPoints; i++) {
                 newPoints[i] = points[numberOfPoints - i - 1];
             }
-            std::cout << points[0]->th << ";" << points[numberOfPoints-1]->th << std::endl;
             newPoints[0]->th = mod2pi(points[numberOfPoints - 1]->th + M_PI);
             newPoints[numberOfPoints - 1]->th = mod2pi(points[0]->th + M_PI);
             // Get the optimal angles for each point (dynamic programming iterative procedure)
