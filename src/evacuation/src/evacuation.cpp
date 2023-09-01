@@ -90,6 +90,11 @@ public:
         shelfino2FollowPathActionClient = rclcpp_action::create_client<nav2_msgs::action::FollowPath>(this, "shelfino2/follow_path");
         shelfino3FollowPathActionClient = rclcpp_action::create_client<nav2_msgs::action::FollowPath>(this, "shelfino3/follow_path");
 
+        // Setup plan publishers
+        shelfino1PlanPublisher = this->create_publisher<nav_msgs::msg::Path>("shelfino1/plan", qos);
+        shelfino2PlanPublisher = this->create_publisher<nav_msgs::msg::Path>("shelfino2/plan", qos);
+        shelfino3PlanPublisher = this->create_publisher<nav_msgs::msg::Path>("shelfino3/plan", qos);
+
         // Setup robots
         shelfino1 = Robot(1);
         shelfino2 = Robot(2);
@@ -175,7 +180,7 @@ public:
         // ========= AVOID ROBOT COLLISIONS =========
         vector<coordination::RobotCoordination> safePaths = coordination::getPathsWithoutRobotCollisions(paths[0], paths[1], paths[2], robotRadius);
 
-        // ========= PUBLISH PATHS =========
+        // ========= PUBLISH AND FOLLOW PATHS =========
         // Wait for all action servers to be available
         RCLCPP_INFO(this->get_logger(), "Waiting for action servers...");
         waitForFollowPathActionServers();
@@ -198,12 +203,15 @@ public:
             goalMsg.controller_id = "FollowPath";
             switch (robot.id) {
                 case 1:
+                    shelfino1PlanPublisher->publish(navPath);
                     shelfino1FollowPathActionClient->async_send_goal(goalMsg);
                     break;
                 case 2:
+                    shelfino2PlanPublisher->publish(navPath);
                     shelfino2FollowPathActionClient->async_send_goal(goalMsg);
                     break;
                 case 3:
+                    shelfino3PlanPublisher->publish(navPath);
                     shelfino3FollowPathActionClient->async_send_goal(goalMsg);
                     break;
                 default:
@@ -226,6 +234,10 @@ private:
     rclcpp_action::Client<nav2_msgs::action::FollowPath>::SharedPtr shelfino1FollowPathActionClient;
     rclcpp_action::Client<nav2_msgs::action::FollowPath>::SharedPtr shelfino2FollowPathActionClient;
     rclcpp_action::Client<nav2_msgs::action::FollowPath>::SharedPtr shelfino3FollowPathActionClient;
+
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr shelfino1PlanPublisher;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr shelfino2PlanPublisher;
+    rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr shelfino3PlanPublisher;
 
     rclcpp::Subscription<geometry_msgs::msg::Polygon>::SharedPtr mapSubscriber;
     rclcpp::Subscription<obstacles_msgs::msg::ObstacleArrayMsg>::SharedPtr obstaclesSubscriber;
