@@ -23,7 +23,7 @@ namespace angle {
 
     geometry_msgs::msg::Quaternion yawToQuaternionMsg(double yaw) {
         tf2::Quaternion quaternion;
-        quaternion.setRPY(0, 0, yaw - (M_PI / 2.0));
+        quaternion.setRPY(0, 0, yaw);
         quaternion.normalize();
 
         geometry_msgs::msg::Quaternion msg;
