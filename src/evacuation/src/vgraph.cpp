@@ -86,7 +86,7 @@ namespace evacuation::vgraph {
         // 3. Add the new edges
 
         std::vector<Polygon> convexHullPolygons = convex::getConvexHull(obstacles);
-        for(int z = 0; z < convexHullPolygons.size(); z++) {
+        for(std::vector<evacuation::Polygon>::size_type z = 0; z < convexHullPolygons.size(); z++) {
             // The convex hull should not be computed on the map, which is the last obstacle.
             if(z!=convexHullPolygons.size()-1) {
                 Polygon originalPolygon = obstacles[z];
@@ -94,7 +94,7 @@ namespace evacuation::vgraph {
                 if (originalPolygon.points.size() != convexHullPolygon.points.size()) {
                     originalPolygon.points = convex::orderPoints(originalPolygon.points);
                     int pointsNotInConvexHull = 0;
-                    for (int j = 0; j < originalPolygon.points.size(); j++) {
+                    for (std::vector<evacuation::Polygon>::size_type j = 0; j < originalPolygon.points.size(); j++) {
                         Point originalPoint = originalPolygon.points[j];
                         Point convexHullPoint = convexHullPolygon.points[j - pointsNotInConvexHull];
                         if (originalPoint.x != convexHullPoint.x || originalPoint.y != convexHullPoint.y) {

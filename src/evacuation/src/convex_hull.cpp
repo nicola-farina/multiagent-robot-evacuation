@@ -196,14 +196,14 @@ namespace convex {
         evacuation::Point startingPoint = tmp[0];
         int index;
         std::vector<evacuation::Point> orderedPoint;
-        for(int i = 0; i < points.size(); i++){
+        for(std::vector<evacuation::Polygon>::size_type i = 0; i < points.size(); i++){
             if(points[i].x == startingPoint.x && points[i].y == startingPoint.y) {
                 index = i;
                 break;
             }
         }
         if(!isClockwise(points)) {
-            for(int i = index; i < points.size(); i++){
+            for(std::vector<evacuation::Polygon>::size_type i = index; i < points.size(); i++){
                 orderedPoint.push_back(points[i]);
             }
             for(int i = 0; i < index; i++){
