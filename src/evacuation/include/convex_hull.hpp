@@ -9,6 +9,8 @@
 
 namespace convex {
     std::vector<evacuation::Polygon> getConvexHull(std::vector<evacuation::Polygon> poly);
+
+    std::vector<evacuation::Point> orderPoints(std::vector<evacuation::Point> points);
 }
 
 #endif

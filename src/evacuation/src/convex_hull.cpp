@@ -6,6 +6,7 @@
 
 #include <stack>
 #include <stdlib.h>
+#include <algorithm>
 
 using namespace std;
 using evacuation::Point;
@@ -150,6 +151,73 @@ namespace convex {
         }
         return ret;
 
+    }
+
+    double crossProduct(const Point& a, const Point& b) {
+        return a.x * b.y - a.y * b.x;
+    }
+
+    bool isClockwise(const std::vector<Point>& points) {
+        int numPoints = points.size();
+        double sum = 0.0;
+
+        for (int i = 0; i < numPoints; ++i) {
+            Point current = points[i];
+            Point next = points[(i + 1) % numPoints]; // Wrap around for the last point
+            sum += crossProduct(current, next);
+        }
+
+        return sum > 0.0; // Clockwise if sum is positive, counterclockwise if negative or zero
+    }
+
+
+    std::vector<evacuation::Point> orderPoints(std::vector<evacuation::Point> points) {
+        std::vector<evacuation::Point> tmp = points;
+        int n = points.size();
+        std::vector<Point> ret;
+
+        // Find the bottommost point
+        int ymin = tmp[0].y, min = 0;
+        for (int i = 1; i < n; i++) {
+            int y = tmp[i].y;
+
+            // Pick the bottom-most or choose the left
+            // most point in case of tie
+            if ((y < ymin) || (ymin == y &&
+                               tmp[i].x < tmp[min].x))
+                ymin = tmp[i].y, min = i;
+        }
+
+        // Place the bottom-most point at first position
+        swap(tmp[0], tmp[min]);
+        p0 = tmp[0];
+        qsort(&tmp[1], n - 1, sizeof(Point), compare);
+        std::reverse(tmp.begin(), tmp.end());
+        evacuation::Point startingPoint = tmp[0];
+        int index;
+        std::vector<evacuation::Point> orderedPoint;
+        for(int i = 0; i < points.size(); i++){
+            if(points[i].x == startingPoint.x && points[i].y == startingPoint.y) {
+                index = i;
+                break;
+            }
+        }
+        if(!isClockwise(points)) {
+            for(int i = index; i < points.size(); i++){
+                orderedPoint.push_back(points[i]);
+            }
+            for(int i = 0; i < index; i++){
+                orderedPoint.push_back(points[i]);
+            }
+        } else {
+            for(int i = index; i >= 0; i--){
+                orderedPoint.push_back(points[i]);
+            }
+            for(int i = points.size() - 1; i>= index; i--){
+                orderedPoint.push_back(points[i]);
+            }
+        }
+        return orderedPoint;
     }
 }
 

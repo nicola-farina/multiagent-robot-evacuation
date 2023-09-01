@@ -6,6 +6,7 @@
 #include <cmath>
 #include <utility>
 #include <set>
+#include "convex_hull.hpp"
 
 namespace evacuation::vgraph {
     VGraph::VGraph(std::vector<Robot> robots, std::vector<Polygon> obstacles, Pose gate) {
@@ -76,6 +77,42 @@ namespace evacuation::vgraph {
                 edges.emplace_back(point, otherPoint, distance);
                 adj[point].emplace_back(otherPoint, distance);
                 adj[otherPoint].emplace_back(point, distance);
+            }
+        }
+
+        // Add edges of convex hull:
+        // 1. Compute convex hull
+        // 2. Find possible new edges (the obstacle is concave)
+        // 3. Add the new edges
+
+        std::vector<Polygon> convexHullPolygons = convex::getConvexHull(obstacles);
+        for(int z = 0; z < convexHullPolygons.size(); z++) {
+            // The convex hull should not be computed on the map, which is the last obstacle.
+            if(z!=convexHullPolygons.size()-1) {
+                Polygon originalPolygon = obstacles[z];
+                Polygon convexHullPolygon = convexHullPolygons[z];
+                if (originalPolygon.points.size() != convexHullPolygon.points.size()) {
+                    originalPolygon.points = convex::orderPoints(originalPolygon.points);
+                    int pointsNotInConvexHull = 0;
+                    for (int j = 0; j < originalPolygon.points.size(); j++) {
+                        Point originalPoint = originalPolygon.points[j];
+                        Point convexHullPoint = convexHullPolygon.points[j - pointsNotInConvexHull];
+                        if (originalPoint.x != convexHullPoint.x || originalPoint.y != convexHullPoint.y) {
+                            // This point is not present in the hull.
+                            pointsNotInConvexHull += 1;
+                            // This edge can be added as connection in the visibility graph.
+                            Point point = originalPolygon.points[(j - 1 + originalPolygon.points.size()) %
+                                                                 originalPolygon.points.size()];
+                            Point otherPoint = originalPolygon.points[(j + 1) %
+                                                                      originalPolygon.points.size()];
+                            double distance = sqrt(
+                                    pow(point.x - otherPoint.x, 2) + pow(point.y - otherPoint.y, 2));
+                            edges.emplace_back(point, otherPoint, distance);
+                            adj[point].emplace_back(otherPoint, distance);
+                            adj[otherPoint].emplace_back(point, distance);
+                        }
+                    }
+                }
             }
         }
 
