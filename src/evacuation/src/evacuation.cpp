@@ -155,10 +155,12 @@ public:
         polygonsForDubins.push_back(mapForDubins);
         polygonsForVisgraph.push_back(mapForVisgraph);
 
+        RCLCPP_INFO(this->get_logger(), "Computing visibility graph...");
         VGraph visGraph(robots, polygonsForVisgraph, gate);
         vector<vector<coordination::PoseForCoordination>> paths;
         for (Robot robot: robots) {
             // Compute the shortest path using visibility graph
+            RCLCPP_INFO(this->get_logger(), "Computing shortest path...");
             vector<Point> path = visGraph.shortestPath(robot.getPosition(), gate.position);
             // Prepare data structure for dubins (only first and last point have orientation)
             auto **points = new dubins::DubinsPoint *[path.size()];
@@ -168,6 +170,7 @@ public:
             }
             points[path.size() - 1] = new dubins::DubinsPoint(path[path.size() - 1].x, path[path.size() - 1].y, gate.th);
             // Compute and interpolate dubins curves
+            RCLCPP_INFO(this->get_logger(), "Executing multipoint Dubins...");
             dubins::Curve **curves = dubins.multipointShortestPath(points, path.size(), polygonsForDubins, env.getMap());
             if (curves == nullptr) {
                 RCLCPP_INFO(this->get_logger(), "[%s] Path not found!", robot.getName().c_str());
@@ -179,6 +182,7 @@ public:
         }
 
         // ========= AVOID ROBOT COLLISIONS =========
+        RCLCPP_INFO(this->get_logger(), "Coordinating evacuation...");
         vector<coordination::RobotCoordination> safePaths = coordination::getPathsWithoutRobotCollisions(paths[0], paths[1], paths[2], robotRadius);
 
         // ========= PUBLISH AND FOLLOW PATHS =========
