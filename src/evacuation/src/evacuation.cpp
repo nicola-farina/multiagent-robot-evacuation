@@ -91,9 +91,9 @@ public:
         shelfino3FollowPathActionClient = rclcpp_action::create_client<nav2_msgs::action::FollowPath>(this, "shelfino3/follow_path");
 
         // Setup plan publishers
-        shelfino1PlanPublisher = this->create_publisher<nav_msgs::msg::Path>("shelfino1/plan", qos);
-        shelfino2PlanPublisher = this->create_publisher<nav_msgs::msg::Path>("shelfino2/plan", qos);
-        shelfino3PlanPublisher = this->create_publisher<nav_msgs::msg::Path>("shelfino3/plan", qos);
+        shelfino1PlanPublisher = this->create_publisher<nav_msgs::msg::Path>("shelfino1/plan", 10);
+        shelfino2PlanPublisher = this->create_publisher<nav_msgs::msg::Path>("shelfino2/plan", 10);
+        shelfino3PlanPublisher = this->create_publisher<nav_msgs::msg::Path>("shelfino3/plan", 10);
 
         // Setup robots
         shelfino1 = Robot(1);
