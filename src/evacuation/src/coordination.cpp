@@ -29,6 +29,7 @@ namespace coordination {
         std::vector<std::vector<PoseForCoordination>> intersectionRobot1Robot3;
         std::vector<std::vector<PoseForCoordination>> intersectionRobot2Robot3;
 
+        //Compute intersections
         for (PoseForCoordination pose1: path1) {
             for (PoseForCoordination pose2: path1) {
                 if (intersect(pose1.getPose(), pose2.getPose(), robotRadius)) {
@@ -53,6 +54,9 @@ namespace coordination {
             }
         }
 
+        // Given the intersections, checks if there are collisions.
+        // In positive case, one second is added to the last-numerated robot and the collision check is done again.
+        // The loop terminates when all the three robots do not collide.
         bool robot1Robot2CollisionChecked = false;
         bool robot1Robot3CollisionChecked = false;
         bool robot2Robot3CollisionChecked = false;
@@ -120,6 +124,7 @@ namespace coordination {
                 collisionTimesFound = true;
             }
         }
+
         std::vector<Pose> path1Poses;
         for (PoseForCoordination pose: path1) {
             path1Poses.push_back(pose.getPose());

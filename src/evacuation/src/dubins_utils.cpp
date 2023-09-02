@@ -1,24 +1,12 @@
-/**
- * @file utils.cpp
- * @brief Functions used to calculate the Dubins Curves
- * @version 0.1
- * @date 2022-01-06
- *
- * @copyright Copyright (c) 2022
- *
- */
+//
+// Created by luca on 14/08/23.
+//
 
 #include <valarray>
 #include "dubins_utils.hpp"
 
 namespace dubins {
 
-    /**
-     * @brief Implementation of function sinc(t)
-     *
-     * @param t TODO
-     * @return double 1 for t==0, and sin(t)/t otherwise
-     */
     double sinc(double t) {
         double s;
         if (std::abs(t) < 0.002) {
@@ -29,12 +17,6 @@ namespace dubins {
         return s;
     }
 
-    /**
-     * @brief Normalize an angle (in range [0,2*pi))
-     *
-     * @param ang Angle to normalize
-     * @return double Normalized angle
-     */
     double mod2pi(double ang) {
         double out = ang;
         while (out < 0) {
@@ -46,12 +28,6 @@ namespace dubins {
         return out;
     }
 
-    /**
-     * @brief Normalize an angular difference (range (-pi, pi])
-     *
-     * @param ang Angular difference to normalize
-     * @return double Normalized angular difference
-     */
     double rangeSymm(double ang) {
         double out = ang;
         while (out <= -M_PI) {
@@ -63,24 +39,10 @@ namespace dubins {
         return out;
     }
 
-    /**
-     * @brief Calculates the cross product between two Points
-     *
-     * @param a First input point
-     * @param b Second input point
-     * @return double Cross product between provided points
-     */
     double crossProduct(DubinsPoint a, DubinsPoint b) {
         return a.x * b.y - a.y * b.x;
     }
 
-    /**
-     * @brief Calculates the dot product between two Points
-     *
-     * @param a First input point
-     * @param b Second input point
-     * @return double Dot product between provided points
-     */
     double dot2D(DubinsPoint a, DubinsPoint b) {
         return a.x * b.x + a.y * b.y;
     }

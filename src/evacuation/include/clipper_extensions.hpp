@@ -10,6 +10,7 @@
 #include <vector>
 
 namespace ClipperLibExtensions {
+
     std::vector<evacuation::Point> enlarge(std::vector<evacuation::Point> points, double offset);
 
     std::vector<evacuation::Polygon> enlargeObstaclesWithTwoOffsets(const evacuation::Polygon &polygon, double offset);

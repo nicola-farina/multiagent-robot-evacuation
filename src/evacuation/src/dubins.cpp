@@ -1,3 +1,7 @@
+//
+// Created by luca on 14/08/23.
+//
+
 #include <vector>
 #include <algorithm>
 #include <cfloat>
@@ -8,29 +12,12 @@ using namespace coordination;
 using std::vector;
 
 namespace dubins {
-    /**
-     * @brief Construct a new Dubins:: Dubins object
-     *
-     * @param k_max Bound on maximum path curvature
-     * @param discretizer_size Given a path of infinite points, what is the discretizer size? Expressed in meters
-     */
+
     Dubins::Dubins(double k_max, double discretizer_size) {
         this->k_max = k_max;
         this->discretizer_size = discretizer_size;
     }
 
-    /**
-     * @brief Verify if the dubins solution curves are valid.
-     *
-     * @param curve_segments The curves to be verified
-     * @param k0 TODO
-     * @param k1 TODO
-     * @param k2 TODO
-     * @param th0 Starting angle
-     * @param thf Final angle
-     * @return true If the solution is valid
-     * @return false If the solution is not valid
-     */
     bool Dubins::areCurvesValid(CurveSegmentsResult *curve_segments, double k0, double k1, double k2, double th0, double thf) {
         double x0 = -1;
         double y0 = 0;
@@ -50,17 +37,6 @@ namespace dubins {
         return (sqrt(eq1 * eq1 + eq2 * eq2 + eq3 * eq3) < 1.e-10 && Lpos);
     }
 
-    /**
-     * @brief Scale the input parameters to standard form (x0: -1, y0: 0, xf: 1, yf: 0)
-     *
-     * @param x0 Starting x position
-     * @param y0 Starting y position
-     * @param th0 Starting angle
-     * @param xf Final x position
-     * @param yf Final y position
-     * @param thf Final angle
-     * @return DubinsResult* Scaled parameters
-     */
     DubinsResult *Dubins::scaleToStandard(double x0, double y0, double th0, double xf, double yf, double thf) const {
         double dx = xf - x0;
         double dy = yf - y0;
@@ -73,13 +49,6 @@ namespace dubins {
         return new DubinsResult(sc_th0, sc_thf, sc_k_max, lambda);
     }
 
-    /**
-     * @brief Return to the initial scaling
-     *
-     * @param lambda TODO
-     * @param curve_segments Current scaled parameters of our problem
-     * @return CurveSegmentsResult*
-     */
     CurveSegmentsResult *Dubins::scaleFromStandard(double lambda, CurveSegmentsResult *curve_segments) {
         return new CurveSegmentsResult(true, curve_segments->s1 * lambda, curve_segments->s2 * lambda, curve_segments->s3 * lambda);
     }
@@ -200,17 +169,6 @@ namespace dubins {
         return new CurveSegmentsResult(true, s1, s2, s3);
     }
 
-    /**
-     * @brief Find the shortest path between a starting and a final position
-     *
-     * @param x0 Starting x position
-     * @param y0 Starting y position
-     * @param th0 Starting angle
-     * @param xf Final x position
-     * @param yf Final y position
-     * @param thf Final angle
-     * @return Curve* Resulting curve representing the shortest path
-     */
     Curve *Dubins::findShortestPath(double x0, double y0, double th0, double xf, double yf, double thf) {
         DubinsResult *scaled_parameters = scaleToStandard(x0, y0, th0, xf, yf, thf);
 
@@ -291,18 +249,6 @@ namespace dubins {
         return curve;
     }
 
-    /**
-     * @brief Find if there is an intersection between two segments
-     *
-     * @param p1 First point used to define the first segment
-     * @param p2 Second point used to define the first segment
-     * @param p3 First point used to define the second segment
-     * @param p4 Second point used to define the second segment
-     * @param pts Array of intersection points this function has found (passed by ref.)
-     * @param ts Coefficients to normalize the segments (passed by ref.)
-     * @return true If an intersection has been found
-     * @return false If an intersection has not been found
-     */
     bool Dubins::lineLineIntersection(DubinsPoint p1, DubinsPoint p2, DubinsPoint p3, DubinsPoint p4, std::vector<DubinsPoint> &pts, std::vector<double> &ts) {
         const double EPSILON = 0.0000001;
         // Initialize the resulting arrays as empty arrays
@@ -520,12 +466,11 @@ namespace dubins {
         return !pts.empty();
     }
 
+    // Implementation of the multi-point Markov Dubins dynamic programming solution
     double *Dubins::getAnglesShortestPath(DubinsPoint **points, int numberOfPoints, const std::vector<Polygon> &obstacles, const Polygon &map) {
-        // INITIALIZATION
-        // Set up a vector of the desired angles
+        // Set up a vector of the k angles.
         auto *minimizingAngles = new double[numberOfPoints];
 
-        // Get the length of the array of the discretized angles
         const int K = std::extent<decltype(multipointAngles)>::value;
 
         // Set up the L matrix, used for the dynamic programming algorithm, storing the intermediate lengths.
@@ -557,8 +502,6 @@ namespace dubins {
             }
         }
 
-        // ALGORITHM - FIRST STEP
-        // For the last two points, we already know the end angle
         bool isThereAPath = false;
         // Loop over the K angles. For each of them, find a curve. If there is a curve, store the length in the L matrix.
         for (unsigned int i = 0; i < K; i++) {
@@ -581,7 +524,6 @@ namespace dubins {
             return nullptr;
         }
 
-        // ITERATIVE COMPUTATION
         // Loop over the points, starting from the second last one, until the first one.
         for (int n = numberOfPoints - 3; n >= 0; n--) {
             // Since there is no constraint on the starting angle, loop over all the K angles.
@@ -656,18 +598,6 @@ namespace dubins {
         return obstaclesLines;
     }
 
-    /**
-     * @brief Find the shortest path between a starting and a final position, check for collisions
-     *
-     * @param x0 Starting x position
-     * @param y0 Starting y position
-     * @param th0 Starting angle
-     * @param xf Final x position
-     * @param yf Final y position
-     * @param thf Final angle
-     * @param edges All obstacles' edges
-     * @return Curve* Resulting curve representing the shortest path
-     */
     Curve *Dubins::ShortestPathWithoutCollisions(double x0, double y0, double th0, double xf, double yf, double thf, const std::vector<Polygon> &obstacles, const Polygon &map) {
         // Get the obstacles and the map edges.
         std::vector<std::vector<Point>> obstaclesLines = getObstaclesAndMapLines(obstacles, map);
