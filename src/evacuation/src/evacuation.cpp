@@ -144,7 +144,7 @@ public:
         vector<Polygon> polygonsForVisgraph;
         vector<Polygon> polygonsForDubins;
         vector<vector<Polygon>> pols = ClipperLibExtensions::enlargeAndJoinObstacles(env.getObstacles(), robotRadius);
-        polygonsForVisgraph = convex::getConvexHull(pols[0]);
+        polygonsForVisgraph = pols[0];
         polygonsForDubins = pols[1];
 
         // Offset map. For visibility graph we use a larger offset (for safety margin)
@@ -260,7 +260,7 @@ private:
     bool gateReceived = false;
     bool evacuationStarted = false;
 
-    double dubinsMaxCurvature = 20.0;
+    double dubinsMaxCurvature = 2.0;
 
     void gateCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg) {
         gateData = *msg;
