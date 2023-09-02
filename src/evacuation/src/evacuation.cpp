@@ -26,7 +26,6 @@
 #include "tf2_ros/buffer.h"
 #include "tf2/convert.h"
 #include "angle_utils.hpp"
-#include "convex_hull.hpp"
 
 using namespace std::chrono_literals;
 using namespace evacuation;
