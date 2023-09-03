@@ -55,10 +55,6 @@ install(TARGETS evacuation
         DESTINATION lib/${PROJECT_NAME}
 )
 
-# Add the install() command after ament_package()
-install(DIRECTORY
-        launch
-        DESTINATION share/${PROJECT_NAME})
 
 # ament_package() should be called before install
 ament_package()
