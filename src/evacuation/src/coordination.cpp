@@ -13,9 +13,9 @@ namespace coordination {
 
     PoseForCoordination::PoseForCoordination() = default;
 
-    PoseForCoordination::PoseForCoordination(double x, double y, double th, double distanceFromInitial) : pose(Pose(x, y, th)), distanceFromInitial(distanceFromInitial) {}
+    PoseForCoordination::PoseForCoordination(double x, double y, double th, double timeFromInitial) : pose(Pose(x, y, th)), timeFromInitial(timeFromInitial) {}
 
-    PoseForCoordination::PoseForCoordination(evacuation::Pose pose, double distanceFromInitial) : pose(pose), distanceFromInitial(distanceFromInitial) {}
+    PoseForCoordination::PoseForCoordination(evacuation::Pose pose, double timeFromInitial) : pose(pose), timeFromInitial(timeFromInitial) {}
 
     Pose PoseForCoordination::getPose() const {
         return pose;
@@ -152,10 +152,9 @@ namespace coordination {
     bool intersectAtSameTime(PoseForCoordination p1, PoseForCoordination p2, double robot1WaitTime, double robot2WaitTime) {
         double robotSize = 0.5;
         double offset = 0.1;
-        double spaceWait = 0.3;
         bool result = false;
-        double p1WithTime = p1.distanceFromInitial + robot1WaitTime * spaceWait;
-        double p2WithTime = p2.distanceFromInitial + robot2WaitTime * spaceWait;
+        double p1WithTime = p1.timeFromInitial + robot1WaitTime;
+        double p2WithTime = p2.timeFromInitial + robot2WaitTime;
         if (std::abs(p1WithTime - p2WithTime) <= robotSize + offset) {
             result = true;
         }

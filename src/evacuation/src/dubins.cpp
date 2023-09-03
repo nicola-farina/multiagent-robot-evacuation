@@ -750,16 +750,39 @@ namespace dubins {
 
     vector <coordination::PoseForCoordination> Dubins::interpolateCurves(Curve **curves, int size, int points_per_arc) {
         vector<coordination::PoseForCoordination> totLine;
-        double distanceFromInitial = 0;
+        double timeFromInitial = 0;
+        double angle;
+        double timeTotalCurve;
         for (int i = 0; i < size; i++) {
             Curve *curve = curves[i];
 
-            vector<coordination::PoseForCoordination> line1 = interpolateArc(curve->a1, points_per_arc, distanceFromInitial);
-            distanceFromInitial += curve->a1->L;
-            vector<coordination::PoseForCoordination> line2 = interpolateArc(curve->a2, points_per_arc, distanceFromInitial);
-            distanceFromInitial += curve->a2->L;
-            vector<coordination::PoseForCoordination> line3 = interpolateArc(curve->a3, points_per_arc, distanceFromInitial);
-            distanceFromInitial += curve->a3->L;
+            vector<coordination::PoseForCoordination> line1 = interpolateArc(curve->a1, points_per_arc, timeFromInitial);
+            angle = 0;
+            if(abs(curve->a1->th0) < 1) {
+                angle = 1;
+            } else {
+                angle = abs(curve->a1->th0);
+            }
+            timeTotalCurve = curve->a1->L / (0.2 * angle);
+            timeFromInitial += timeTotalCurve;
+            vector<coordination::PoseForCoordination> line2 = interpolateArc(curve->a2, points_per_arc, timeFromInitial);
+            angle = 0;
+            if(abs(curve->a2->th0) < 1) {
+                angle = 1;
+            } else {
+                angle = abs(curve->a2->th0);
+            }
+            timeTotalCurve = curve->a2->L / (0.2 * angle);
+            timeFromInitial += timeTotalCurve;
+            vector<coordination::PoseForCoordination> line3 = interpolateArc(curve->a3, points_per_arc, timeFromInitial);
+            angle = 0;
+            if(abs(curve->a3->th0) < 1) {
+                angle = 1;
+            } else {
+                angle = abs(curve->a3->th0);
+            }
+            timeTotalCurve = curve->a3->L / (0.2 * angle);
+            timeFromInitial += timeTotalCurve;
 
             totLine.insert(totLine.end(), line1.begin(), line1.end());
             totLine.insert(totLine.end(), line2.begin(), line2.end());
@@ -768,8 +791,18 @@ namespace dubins {
         return totLine;
     }
 
-    vector <coordination::PoseForCoordination> Dubins::interpolateArc(Arc *arc, int num_points, double distanceFromInitial) {
+    vector <coordination::PoseForCoordination> Dubins::interpolateArc(Arc *arc, int num_points, double timeFromInitial) {
         vector<coordination::PoseForCoordination> poses;
+
+        double timeCurrentPoint = timeFromInitial;
+        double angle = 0;
+        if(abs(arc->th0) < 1) {
+            angle = 1;
+        } else {
+            angle = abs(arc->th0);
+        }
+        double timeTotalCurve = arc->L / (0.2 * angle);
+        double timePerPoint = timeTotalCurve / num_points;
 
         for (int j = 0; j < num_points; j++) {
 
@@ -777,7 +810,9 @@ namespace dubins {
 
             Line line(s, arc->x0, arc->y0, arc->th0, arc->k);
 
-            poses.emplace_back(line.x, line.y, line.th, distanceFromInitial + s);
+            poses.emplace_back(line.x, line.y, line.th, timeCurrentPoint);
+
+            timeCurrentPoint += timePerPoint;
         }
 
         return poses;

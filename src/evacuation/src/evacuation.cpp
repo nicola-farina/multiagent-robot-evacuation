@@ -3,6 +3,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <unistd.h>
 
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/polygon.hpp"
@@ -195,12 +196,15 @@ public:
         waitForFollowPathActionServers();
         RCLCPP_INFO(this->get_logger(), "Action servers available!");
 
+        for (Robot robot: robots) {
+            RCLCPP_INFO(this->get_logger(), "Robot [%s] waiting [%f]", robot.getName().c_str(), safePaths[robot.id - 1].timeToWait);
+        }
         // Send path to robots
         for (Robot robot: robots) {
             RCLCPP_INFO(this->get_logger(), "[%s] Sending goal...", robot.getName().c_str());
             nav_msgs::msg::Path navPath;
             coordination::RobotCoordination robotCoordination = safePaths[robot.id - 1];
-            sleep((int) robotCoordination.timeToWait);
+            usleep((int) (robotCoordination.timeToWait * 1000000));
             for (Pose p: robotCoordination.path) {
                 navPath.poses.push_back(p.toPoseStamped(this->get_clock()->now(), "map"));
             }

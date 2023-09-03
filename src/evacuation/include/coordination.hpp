@@ -11,13 +11,13 @@ namespace coordination {
 
     struct PoseForCoordination {
         evacuation::Pose pose;
-        double distanceFromInitial;
+        double timeFromInitial;
 
         PoseForCoordination();
 
-        PoseForCoordination(double x, double y, double th, double distanceFromInitial);
+        PoseForCoordination(double x, double y, double th, double timeFromInitial);
 
-        PoseForCoordination(evacuation::Pose pose, double distanceFromInitial);
+        PoseForCoordination(evacuation::Pose pose, double timeFromInitial);
 
         evacuation::Pose getPose() const;
     };

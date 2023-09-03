@@ -7,6 +7,7 @@
 #include <utility>
 #include <set>
 #include "convex_hull.hpp"
+#include <algorithm>
 
 namespace evacuation::vgraph {
     VGraph::VGraph(std::vector<Robot> robots, std::vector<Polygon> obstacles, Pose gate) {

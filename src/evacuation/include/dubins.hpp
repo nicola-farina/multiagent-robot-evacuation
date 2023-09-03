@@ -149,7 +149,7 @@ namespace dubins {
 
         static CurveSegmentsResult *curveLRL(double scaled_th0, double scaled_thf, double scaled_k_max);
 
-        static std::vector<coordination::PoseForCoordination> interpolateArc(Arc *arc, int num_points, double distanceFromInitial);
+        static std::vector<coordination::PoseForCoordination> interpolateArc(Arc *arc, int num_points, double timeFromInitial);
     };
 }
 
