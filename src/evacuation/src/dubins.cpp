@@ -763,7 +763,7 @@ namespace dubins {
             } else {
                 angle = abs(curve->a1->th0);
             }
-            timeTotalCurve = curve->a1->L / (0.2 * angle);
+            timeTotalCurve = curve->a1->L / (0.3 * angle);
             timeFromInitial += timeTotalCurve;
             vector<coordination::PoseForCoordination> line2 = interpolateArc(curve->a2, points_per_arc, timeFromInitial);
             angle = 0;
@@ -772,7 +772,7 @@ namespace dubins {
             } else {
                 angle = abs(curve->a2->th0);
             }
-            timeTotalCurve = curve->a2->L / (0.2 * angle);
+            timeTotalCurve = curve->a2->L / (0.3 * angle);
             timeFromInitial += timeTotalCurve;
             vector<coordination::PoseForCoordination> line3 = interpolateArc(curve->a3, points_per_arc, timeFromInitial);
             angle = 0;
@@ -781,7 +781,7 @@ namespace dubins {
             } else {
                 angle = abs(curve->a3->th0);
             }
-            timeTotalCurve = curve->a3->L / (0.2 * angle);
+            timeTotalCurve = curve->a3->L / (0.3 * angle);
             timeFromInitial += timeTotalCurve;
 
             totLine.insert(totLine.end(), line1.begin(), line1.end());
@@ -801,7 +801,7 @@ namespace dubins {
         } else {
             angle = abs(arc->th0);
         }
-        double timeTotalCurve = arc->L / (0.2 * angle);
+        double timeTotalCurve = arc->L / (0.3 * angle);
         double timePerPoint = timeTotalCurve / num_points;
 
         for (int j = 0; j < num_points; j++) {

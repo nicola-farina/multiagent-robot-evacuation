@@ -20,9 +20,9 @@ namespace evacuation::vgraph {
 
         static bool lineIntersectsSegment(Point p1, Point q1, Point p2, Point q2);
 
-        static bool onSegment(Point p, Point q, Point r);
+        static int direction(Point p, Point q, Point r);
 
-        static int orientation(Point p, Point q, Point r);
+        static bool areCollinearAndOverlapping(Point a1, Point b1, Point a2);
 
         std::vector<Point> shortestPath(Point origin, Point destination);
 
